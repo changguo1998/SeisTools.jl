@@ -1,0 +1,9 @@
+name = "SeisTools"
+uuid = "1a3a5297-0f7d-450c-8955-231a439346a8"
+authors = ["windflows <changguo1024@foxmail.com>"]
+version = "0.1.0"
+
+[deps]
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
