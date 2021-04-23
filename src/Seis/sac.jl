@@ -94,8 +94,8 @@ writesac
 
     writesac(path:AbstractString="./seismogram.sac", data::SACFrame)
 """
-#todo   add function to check header and data
-#!  this function don't check right now!!
+# todo   add function to check header and data
+# !  this function don't check right now!!
 function writesac(io::IO, data::SACFrame=SACFrame(Dict(), []))
     for i = 1:110
         hname = HEADER.sac.headlist[i]
@@ -197,12 +197,12 @@ end
 
 function stdname(s::SACFrame, type::Int=1, qtag::AbstractChar='D')
     if type == 1
-        return @sprintf("%04d.%03d.%02d.%02d.%02d.%04d.%s.%s.%s.%s.%s.SAC", 
-        s.head["nzyear"], s.head["nzjday"], s.head["nzhour"], s.head["nzmin"], s.head["nzsec"], s.head["nzmsec"], 
+        return @sprintf("%04d.%03d.%02d.%02d.%02d.%04d.%s.%s.%s.%s.%s.SAC",
+        s.head["nzyear"], s.head["nzjday"], s.head["nzhour"], s.head["nzmin"], s.head["nzsec"], s.head["nzmsec"],
         s.head["knetwk"], s.head["kstnm"], s.head["khole"], s.head["kcmpnm"], qtag)
     elseif type == 2
-        return @sprintf("%s.%s.%s.%s.%s.%04d.%03d.%02d%02d%02d.SAC", 
-        s.head["knetwk"], s.head["kstnm"], s.head["khole"], s.head["kcmpnm"], qtag, 
+        return @sprintf("%s.%s.%s.%s.%s.%04d.%03d.%02d%02d%02d.SAC",
+        s.head["knetwk"], s.head["kstnm"], s.head["khole"], s.head["kcmpnm"], qtag,
         s.head["nzyear"], s.head["nzjday"], s.head["nzhour"], s.head["nzmin"], s.head["nzsec"])
     end
 end

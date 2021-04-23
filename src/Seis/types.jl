@@ -45,18 +45,18 @@ enumeratevars = ("iftype", "idep", "iztype", "ievtyp", "iqual", "isynth", "imagt
 logicalvars = ("leven", "lpspol", "lovrok", "lcalda", "unused18")
 iftype = Dict([ (1, "ITIME"), (2, "IRLIM"), (3, "IAMPH"), (4, "IXY"), (51, "IXYZ") ])
 idep = Dict([ (5, "IUMKN"), (6, "IDISP"), (7, "IVEL"), (8, "IACC"), (50, "IVOLTS") ])
-iztype = Dict([ (5, "IUNKN"), (9, "IB"), (10, "IDAY"), (11, "IO"), (12, "IA"), (13, "IT0"), 
+iztype = Dict([ (5, "IUNKN"), (9, "IB"), (10, "IDAY"), (11, "IO"), (12, "IA"), (13, "IT0"),
             (14, "IT1"), (15, "IT2"), (16, "IT3"), (17, "IT4"), (18, "IT5"), (19, "IT6"), (20, "IT7"),
             (21, "IT8"), (22, "IT9") ])
-ievtyp = Dict([ (5, "IUNKN"), (37, "INUCL"), (38, "IPREN"), (39, "IPOSTN"), (40, "IQUAKE"), 
-            (41, "IPREQ"), (42, "IPOSTQ"), (43, "ICHEM"), (44, "IOTHER"), (70, "IQB"), (71, "IQB1"), 
-            (72, "IQB2"), (73, "IQBX"), (74, "IQMT"), (75, "IEQ"), (76, "IEQ1"), (77, "IEQ2"), (78, "IME"), 
-            (79, "IEX"), (80, "INU"), (81, "INC"), (82, "IO_"), (83, "IL"), (84, "IR"), (85, "IT"), 
+ievtyp = Dict([ (5, "IUNKN"), (37, "INUCL"), (38, "IPREN"), (39, "IPOSTN"), (40, "IQUAKE"),
+            (41, "IPREQ"), (42, "IPOSTQ"), (43, "ICHEM"), (44, "IOTHER"), (70, "IQB"), (71, "IQB1"),
+            (72, "IQB2"), (73, "IQBX"), (74, "IQMT"), (75, "IEQ"), (76, "IEQ1"), (77, "IEQ2"), (78, "IME"),
+            (79, "IEX"), (80, "INU"), (81, "INC"), (82, "IO_"), (83, "IL"), (84, "IR"), (85, "IT"),
             (86, "IU") ])
 iqual = Dict([ (44, "IOTHER"), (45, "IGOOD"), (46, "IGLCH"), (47, "IDROP"), (48, "ILOSN") ])
 isynth = Dict([ (49, "IRLDA") ])
 imagtyp = Dict([ (52, "IMB"), (53, "IMS"), (54, "IML"), (55, "IMW"), (56, "IMD"), (57, "IMX") ])
-imagsrc = Dict([ (58, "INEIC"), (59, "IPDE"), (60, "IISC"), (61, "IREB"), (62, "IUSGS"), (63, "IBRK"), 
+imagsrc = Dict([ (58, "INEIC"), (59, "IPDE"), (60, "IISC"), (61, "IREB"), (62, "IUSGS"), (63, "IBRK"),
             (64, "ICALTECH"), (65, "ILLNL"), (66, "IEVLOC"), (67, "IJSOP"), (68, "IUSER"), (69, "IUNKNOWN") ])
 
 iftyper = Dict([ (i.second, i.first) for i in iftype ])
@@ -67,12 +67,12 @@ iqualr = Dict([ (i.second, i.first) for i in iqual ])
 isynthr = Dict([ (i.second, i.first) for i in isynth ])
 imagtypr = Dict([ (i.second, i.first) for i in imagtyp ])
 imagsrcr = Dict([ (i.second, i.first) for i in imagsrc ])
-sacheadtrans = (int2other = Dict([ ("iftype", iftype), ("idep", idep), ("iztype", iztype), ("ievtyp", ievtyp), 
-        ("iqual", iqual), ("isynth", isynth), ("imagtyp", imagtyp), ("imagsrc", imagsrc) ]), 
-    other2int = Dict([ ("iftype", iftyper), ("idep", idepr), ("iztype", iztyper), ("ievtyp", ievtypr), 
+sacheadtrans = (int2other = Dict([ ("iftype", iftype), ("idep", idep), ("iztype", iztype), ("ievtyp", ievtyp),
+        ("iqual", iqual), ("isynth", isynth), ("imagtyp", imagtyp), ("imagsrc", imagsrc) ]),
+    other2int = Dict([ ("iftype", iftyper), ("idep", idepr), ("iztype", iztyper), ("ievtyp", ievtypr),
         ("iqual", iqualr), ("isynth", isynthr), ("imagtyp", imagtypr), ("imagsrc", imagsrcr) ]))
 segyheadlist = ()
 end
-sac = (headlist=tmp.sacheadlist, enumeratevars=tmp.enumeratevars, headtrans=tmp.sacheadtrans, logicalvars=tmp.logicalvars)
+sac = (headlist = tmp.sacheadlist, enumeratevars = tmp.enumeratevars, headtrans = tmp.sacheadtrans, logicalvars = tmp.logicalvars)
 segy = ()
 end
