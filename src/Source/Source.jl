@@ -2,11 +2,9 @@ module Source
 using LinearAlgebra, Plots
 pyplot()
 include("types.jl")
-export Mechanism, DoubleCouple, MomentTensor
+export Mechanism, DoubleCouple, MomentTensor, normal2DC, normalvector, beachball
 
 include("DC.jl")
-export normal2DC, normalvector
-
 include("Beachball.jl")
-export beachball
+
 end
