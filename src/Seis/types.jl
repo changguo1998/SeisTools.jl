@@ -19,7 +19,7 @@ end
 
 struct SEGYFrame <: Frame
     head::Dict
-    data::Array
+    data::Vector
     function SEGYFrame(head, data)
         new(head, data)
     end
@@ -77,6 +77,14 @@ sacheadtrans = (int2other = Dict([ ("iftype", iftype), ("idep", idep), ("iztype"
         ("iqual", iqual), ("isynth", isynth), ("imagtyp", imagtyp), ("imagsrc", imagsrc) ]),
     other2int = Dict([ ("iftype", iftyper), ("idep", idepr), ("iztype", iztyper), ("ievtyp", ievtypr),
         ("iqual", iqualr), ("isynth", isynthr), ("imagtyp", imagtypr), ("imagsrc", imagsrcr) ]))
+segyfilehead = ("job", "line", "reel", "dataTracePerEnsemble", "AuxiliaryTracePerEnsemble", "dt", "dtOrig", "ns", "nsOrig",
+    "dataSampleFormat", "ensembleFold", "traceSorting", "verticalSumCode", "sweepFrequencyStart", "sweepFrequencyEnd",
+    "sweepLength", "sweepType", "sweepChannel", "sweepTaperLengthStart", "sweepTaperLengthEnd", "taperType",
+    "correlatedDataTraces", "binaryGain", "amplitudeRecoveryMethod", "measurementSystem", "impulseSignalPolarity",
+    "vibratoryPolarityCode", "unassigned1", "segyFormatRevisionNumber", "fixedLengthTraceFlag", "numberOfExtTextualHeaders",
+    "unassigned2")
+segyfileheadtype=(Int32, Int32, Int32, Int16, UInt16, UInt16, UInt16, UInt16, UInt16, Int16, Int16, Int16, Int16,Int16, Int16,
+Int16, Int16, Int16, Int16,Int16, Int16,Int16, Int16, Int16, Int16,Int16, Int16,)
 segyheadlist = ()
 end
 sac = (headlist = tmp.sacheadlist, enumeratevars = tmp.enumeratevars, headtrans = tmp.sacheadtrans, logicalvars = tmp.logicalvars)
