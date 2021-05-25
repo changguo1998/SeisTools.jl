@@ -17,7 +17,13 @@ struct SACFrame <: Frame
     end
 end
 
-struct SEGYFrame <: Frame end
+struct SEGYFrame <: Frame
+    head::Dict
+    data::Array
+    function SEGYFrame(head, data)
+        new(head, data)
+    end
+end
 
 module HEADER
 module tmp
