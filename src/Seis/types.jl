@@ -12,9 +12,22 @@ struct WaveFrame <: Frame
     meta::Dict()
     data::AbstractArray
     function WaveFrame( n="", s="", dv="", cmp="", bt=DateTime(2021),
-                        dt=0.01, npts=0, meta=Dict(), data=[]; id = "")
+                        dt=0.01, data=[], npts=0, meta=Dict(); id = "", fill_meta=false)
         if isempty(id)
             id = join([n, s, dv, cmp], '.')
+        end
+        if npts==0
+            npts = length(data)
+        end
+        if isempty(meta) || fill_meta
+            meta["network"] = n
+            meta["staiton"] = s
+            meta["device"] = dv
+            meta["component"] = cmp
+            meta["begintime"] = bt
+            meta["delta"] = dt
+            meta["npts"] = npts
+            meta["id"] = id
         end
         new(n, s, dv, cmp, id, bt, dt, npts, meta, data)
     end
