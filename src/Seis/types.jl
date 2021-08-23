@@ -1,11 +1,22 @@
 abstract type Frame <: Any end
 
 struct WaveFrame <: Frame
-    type::AbstractString
-    head::Dict
+    network::AbstractString
+    station::AbstractString
+    device::AbstractString
+    component::AbstractString
+    id::AbstractString
+    begintime::DateTime
+    delta::Peroid
+    npts::Int
+    meta::Dict()
     data::AbstractArray
-    function WaveFrame(type="default", head=Dict(), data=[])
-        new(type, head, data)
+    function WaveFrame( n="", s="", dv="", cmp="", bt=DateTime(2021),
+                        dt=0.01, npts=0, meta=Dict(), data=[]; id = "")
+        if isempty(id)
+            id = join([n, s, dv, cmp], '.')
+        end
+        new(n, s, dv, cmp, id, bt, dt, npts, meta, data)
     end
 end
 

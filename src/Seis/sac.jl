@@ -180,10 +180,6 @@ function newsachead()
     return head
 end
 
-function WaveFrame(s::SACFrame)
-    return WaveFrame("sac", s.head, s.data)
-end
-
 function SACFrame(s::WaveFrame)
     headkeys = keys(s.head)
     h = newsachead()
