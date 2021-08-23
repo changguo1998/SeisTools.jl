@@ -132,7 +132,7 @@ function readsegytracehead(io::IO)
     read!(io, t)
     t = Int.(ntoh.(t))
     k = ("offset", "receiverGroupElevation", "sourceSurfaceElevation", "sourceDepth", "receiverDatumElevation",
-    "sourceWaterDepth", "groupWaterDepth")
+    "sourceDatumElevation", "sourceWaterDepth", "groupWaterDepth")
     filldict!(th, k, t)
 
     th["elevationScalar"] = read(io, Int16) |> ntoh |> Int

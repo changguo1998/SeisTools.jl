@@ -147,7 +147,7 @@ function writesac(io::IO, data::SACFrame=SACFrame(Dict(), []))
         end
     end
     for i = data.data
-        write(io, i)
+        write(io, Float32.(i))
     end
 end
 

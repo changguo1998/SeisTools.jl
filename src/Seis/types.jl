@@ -22,7 +22,7 @@ end
 
 struct SACFrame <: Frame
     head::Dict
-    data::Array{Array{Float32,1},1}
+    data::Array{Array{T,1},1} where T<:AbstractFloat
     function SACFrame(head, data)
         new(head, data)
     end
