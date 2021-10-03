@@ -1,120 +1,140 @@
-"""
-detrend
-
-    return waves that are removed trend
-    =================================
-    detrend(x::AbstractArray; type="lsq")
-"""
-function detrend(x::AbstractArray; type="lsq")
+function detrend!(x::AbstractVector; type::AbstractString = "LeastSquare")
     N = length(x)
-    if type == "simple"
-        d = (x[N] - x[1]) .* ( (1:N) .- 1) ./ (N - 1) .+ x[1]
-    elseif type == "lsq"
+    ZERO = convert(eltype(x), 0.0)
+    if type == "Mean"
+        k = ZERO
+        b = mean(x)
+    elseif type == "SimpleLinear"
+        k = (x[end] - x[1]) / (N - 1)
+        b = x[1]
+    elseif type == "LeastSquare"
         xm = (N + 1.0) / 2.0
         x2m = (N + 1.0) * (2.0 * N + 1.0) / 6.0
         ym = mean(x)
-        xym = mean(x .* (1:N))
-        d = ((xm * ym - xym) .* (1:N) .+ xm * xym .- ym * x2m) ./ (xm * xm - x2m)
-    end
-    return x .- d
-end
-
-"""
-taper!
-
-    taper!(out::AbstractArray, f::function, w::AbstractArray, ratio::Real)
-    similar with taper
-"""
-function taper!(out::AbstractArray, f::Function, w::AbstractArray, ratio::Real)
-    # check parameter
-    if (ratio <= 0) || (ratio > 0.5)
-        error("ratio should valued in [0, 0.5].");
-    end
-    if (f(0.0) != 0.0) && (f(1.0) != 1.0)
-        error("weight function w should satisfy: w(0)==0, w(1)==1.")
-    end
-    N = floor(Int, length(w) * ratio)
-    weight = [f.((0:(N - 1)) ./ (N - 1));ones(length(w) - 2 * N);f.(((N - 1):-1:0) ./ (N - 1))]
-    out[:] = w .* weight
-    return nothing
-end
-
-"""
-taper
-
-    taper waves
-    ==============================
-    taper(f::Function, w::AbstractArray, ratio::Real=0.05)
-    f should satisfy: f(0)=0 and f(1) = 1. for example, sin(x*pi/2)
-    ratio should be between 0 and 0.5
-"""
-function taper(f::Function, w::AbstractArray, ratio::Real=0.05)
-    v = zeros(size(w))
-    taper!(v, f, w, ratio)
-    return v
-end
-
-"""
-filt!
-"""
-function filt!(fw::AbstractArray, w::AbstractArray, response::DSP.FilterType=Bandpass(0.01, 0.2),
-    method::DSP.FilterCoefficients=Butterworth(3))
-    DSP.filt!(fw, digitalfilter(response, method), w)
-    return nothing
-end
-
-function filt!(fw::AbstractArray, w::AbstractArray, response::Union{AbstractString,Symbol}=:bandpass,
-    design::Union{AbstractString,Symbol}=:butter; fs::Real=100, band::Tuple=(0.1, 40), order::Int=3)
-    if (response in ("bandpass", "Bandpass", "Band", "band", "BandPass")) || (response in (:bandpass, :Bandpass, :Band, :band, :BandPass))
-        responsetype = DSP.Filters.Bandpass(band[1], band[2], fs=fs)
-    elseif (response in ("lowpass", "Lowpass", "Low", "low", "LowPass")) || (response in (:lowpass, :Lowpass, :Low, :low, :LowPass))
-        responsetype = DSP.Filters.Lowpass(band[1], fs=fs)
-    elseif (response in ("highpass", "Highpass", "High", "high", "HighPass")) || (response in (:highpass, :Highpass, :High, :high, :HighPass))
-        responsetype = DSP.Filters.Highpass(band[1], fs=fs)
+        xym = ZERO
+        for i = 1:N
+            xym += x[i] * i
+        end
+        xym /= N
+        k = (xm * ym - xym) / (xm^2 - x2m)
+        b = (xm * xym - ym * x2m) / (xm^2 - x2m)
     else
-        responsetype = DSP.Filters.Bandstop(band[1], band[2], fs=fs)
+        k = ZERO
+        b = ZERO
     end
-    if (design in ("butter", "Butter", "butterworth", "Butterworth")) || (design in (:butter, :Butter, :butterworth, :Butterworth))
-        designmethod = DSP.Filters.Butterworth(order)
-    else
-        designmethod = DSP.Filters.Butterworth(order)
+    for i = 1:N
+        x[i] -= k * i + b
     end
-    filt!(fw, w, responsetype, designmethod)
     return nothing
 end
 
-"""
-filt
-
-    filt wave using DSP.filt function
-
-    ==================================
-
-    filt(w::AbstractArray, response::Union{AbstractString,Symbol}=:bandpass, design::Union{AbstractString,Symbol}=:butter;
-         fs::Real=100, band::Tuple=(0.1, 40), order::Int=3)
-
-    response can be choosen from banpass, bandstop, lowpass and highpass
-    design can only be set as butter, for other filters like Chebyshev I/II, Ellipsoid will be add later
-    fs sampling rate, default is 100Hz
-    band must be Tuple, if you are going to use lowpass or hipass, you can set it like (1.0,)
-    order is the order of the filter
-
-    ==================================
-
-    filt!(w::AbstractArray, response::FilterType=Bandpass(0.01, 0.2), method::FilterCoefficients=Butterworth(3))
-
-    design the filter yourself and use `filt` to filt the wave
-"""
-function filt(w::AbstractArray, response::Union{AbstractString,Symbol}=:bandpass,
-    design::Union{AbstractString,Symbol}=:butter; fs::Real=100, band::Tuple=(0.1, 40), order::Int=3)
-    fw = zeros(size(w))
-    filt!(fw, w, response, design; fs=fs,band=band, order=order)
-    return fw
+function detrend!(f::WaveFrame; type::AbstractString = "LeastSquare")
+    detrend!(f.data; type = type)
+    return nothing
 end
 
-function filt(w::AbstractArray, response::FilterType=Bandpass(0.01, 0.2),
-    method::FilterCoefficients=Butterworth(3))
-    fw = zeros(size(w))
-    DSP.filt!(fw, digitalfilter(response, method), w)
-    return fw
+function detrend(x::Union{WaveFrame,AbstractVector}; type::AbstractString = "LeastSquare")
+    g = deepcopy(f)
+    detrend!(g; type = type)
+    return g
+end
+
+function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05)
+    @assert ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
+    @assert ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
+    N = length(x)
+    M = round(Int, N * ratio)
+    for i = 1:M
+        x[i] *= f((i - 1) / (M - 1))
+        x[N-i+1] *= f((i - 1) / (M - 1))
+    end
+    return nothing
+end
+
+function taper!(f::Function, frame::WaveFrame; ratio::Real = 0.05)
+    taper!(f, frame.data; ratio = ratio)
+    return nothing
+end
+
+function taper(f::Function, x::Union{WaveFrame,AbstractVector}; ratio::Real = 0.05)
+    y = deepcopy(x)
+    taper!(f, x; ratio = ratio)
+    return y
+end
+
+function taper!(x::Union{WaveFrame,AbstractVector}; ratio::Real = 0.05)
+    taper!(var -> var, x; ratio = ratio)
+    return nothing
+end
+
+function taper(x::Union{WaveFrame,AbstractVector}; ratio::Real = 0.05)
+    return taper(var -> var, x; ratio = ratio)
+end
+
+function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
+                  fs::Real = 0.0)
+    if fs > 0.0
+        ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
+    else
+        ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
+    end
+    return filtfilt(ftr, x)
+end
+
+function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
+                   fs::Real = 0.0)
+    y = bandpass(x, w1, w2, n; fs = fs)
+    for i = 1:length(x)
+        x[i] = y[i]
+    end
+    return nothing
+end
+
+function bandpass(frame::WaveFrame, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
+                  fs::Real = 0.0)
+    y = deepcopy(frame)
+    yw = bandpass(frame.data, w1, w2, n; fs = fs)
+    for i = 1:length(yw)
+        y.data[i] = yw[i]
+    end
+    return y
+end
+
+function calshift(t::DateTime, ref::DateTime, dt::Period)
+    return round(Int, round(t - ref, Nanosecond) / round(dt, Nanosecond))
+end
+
+function merge(f::Vector{T}, gv...; fill::Real = 0.0) where {T<:Frame}
+    @assert eltype(gv) <: Frame
+    flag = (delta = true, id = true)
+    for ig = 1:length(gv), k in keys(flag)
+        flag[k] &= getproperty(f, k) == getproperty(gv[ig], k)
+    end
+    for k in keys(flag)
+        if !flag[k]
+            @error "property: " * string(k) * " is not consistant"
+        end
+    end
+    btimes = DateTime[f.begintime]
+    etimes = DateTime[f.begintime+Microsecond(f.delta * (f.npts - 1))]
+    newBtime = minimum(btimes)
+    newEtime = maximum(etimes)
+    newDelta = f.delta
+    newNPTS = round(Int, round(newEtime - newBtime, Microsecond) / round(newDelta, Microsecond))
+    newdata = fill(convert(eltype(f.data), fill), newNPTS)
+    s = calshift(f.begintime, newBtime, newDelta)
+    for i = 1:f.npts
+        newdata[s+i] = f.data[i]
+    end
+    for ig = 1:length(gv)
+        s = calshift(gv[ig], newBtime, newDelta)
+        for i = 1:gv[ig].npts
+            newdata[s+i] = gv[ig].data[i]
+        end
+    end
+    return WaveFrame(f.network, f.station, f.device, f.component, newBtime, newDelta, newdata,
+                     newNPTS, f.meta)
+end
+
+function slice(frame::WaveFrame, starttime::DateTime, endtime::DateTime; fill::Real=0.0)
 end
