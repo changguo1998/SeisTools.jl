@@ -71,8 +71,7 @@ function taper(x::Union{WaveFrame,AbstractVector}; ratio::Real = 0.05)
     return taper(var -> var, x; ratio = ratio)
 end
 
-function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
-                  fs::Real = 0.0)
+function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4; fs::Real = 0.0)
     if fs > 0.0
         ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
     else
@@ -81,8 +80,7 @@ function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::In
     return filtfilt(ftr, x)
 end
 
-function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
-                   fs::Real = 0.0)
+function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4; fs::Real = 0.0)
     y = bandpass(x, w1, w2, n; fs = fs)
     for i = 1:length(x)
         x[i] = y[i]
@@ -90,8 +88,7 @@ function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, n::I
     return nothing
 end
 
-function bandpass(frame::WaveFrame, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4;
-                  fs::Real = 0.0)
+function bandpass(frame::WaveFrame, w1::AbstractFloat, w2::AbstractFloat, n::Int = 4; fs::Real = 0.0)
     y = deepcopy(frame)
     yw = bandpass(frame.data, w1, w2, n; fs = fs)
     for i = 1:length(yw)
@@ -132,9 +129,7 @@ function merge(f::Vector{T}, gv...; fill::Real = 0.0) where {T<:Frame}
             newdata[s+i] = gv[ig].data[i]
         end
     end
-    return WaveFrame(f.network, f.station, f.device, f.component, newBtime, newDelta, newdata,
-                     newNPTS, f.meta)
+    return WaveFrame(f.network, f.station, f.device, f.component, newBtime, newDelta, newdata, newNPTS, f.meta)
 end
 
-function slice(frame::WaveFrame, starttime::DateTime, endtime::DateTime; fill::Real=0.0)
-end
+function slice(frame::WaveFrame, starttime::DateTime, endtime::DateTime; fill::Real = 0.0) end
