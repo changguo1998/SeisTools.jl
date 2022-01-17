@@ -1,3 +1,4 @@
+module SEGY
 const EBCDIC_TABLE = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
                       27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
                       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 74, 75, 76, 77, 78, 79, 80, 90, 91, 92,
@@ -21,6 +22,17 @@ const ASCII_TABLE = (0, 1, 2, 3, 156, 9, 134, 127, 151, 141, 142, 11, 12, 13, 14
                      28, 29, 29, 30, 31, 127, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
                      50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 95, 96, 123, 124, 125,
                      126)
+const FILE_HEADER_VAR_LIST = ("job", "line", "reel", "dataTracePerEnsemble", "AuxiliaryTracePerEnsemble", "dt",
+                              "dtOrig", "ns", "nsOrig", "dataSampleFormat", "ensembleFold", "traceSorting",
+                              "verticalSumCode", "sweepFrequencyStart", "sweepFrequencyEnd", "sweepLength", "sweepType",
+                              "sweepChannel", "sweepTaperLengthStart", "sweepTaperLengthEnd", "taperType",
+                              "correlatedDataTraces", "binaryGain", "amplitudeRecoveryMethod", "measurementSystem",
+                              "impulseSignalPolarity", "vibratoryPolarityCode", "unassigned1",
+                              "segyFormatRevisionNumber", "fixedLengthTraceFlag", "numberOfExtTextualHeaders",
+                              "unassigned2")
+const FILE_HEADER_VAR_TYPE_LIST = (Int32, Int32, Int32, Int16, UInt16, UInt16, UInt16, UInt16, UInt16, Int16, Int16,
+                                   Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16,
+                                   Int16, Int16, Int16, Int16)
 
 function ebcdic2ascii(c::Char)
     I = findfirst(EBCDIC_TABLE .== Int(c))
@@ -36,20 +48,20 @@ function filldict!(d::Dict, k, t)
     end
 end
 
-function readsegyfilehead(io::IO)
-    # taperLabel = read(io, 128) |> String
+function readfilehead(io::IO)
+    # taperLabel = Base.read(io, 128) |> String
     taperLabel                                  = []
-    textualFileHead                             = read(io, 3200) |> String
+    textualFileHead                             = Base.read(io, 3200) |> String
     binaryFileHead                              = Dict()
-    binaryFileHead["job"]                       = read(io, Int32) |> ntoh |> Int
-    binaryFileHead["line"]                      = read(io, Int32) |> ntoh |> Int
-    binaryFileHead["reel"]                      = read(io, Int32) |> ntoh |> Int
-    binaryFileHead["dataTracePerEnsemble"]      = read(io, Int16) |> ntoh |> Int
-    binaryFileHead["auxiliaryTracePerEnsemble"] = read(io, UInt16) |> ntoh |> Int
-    binaryFileHead["dt"]                        = read(io, UInt16) |> ntoh |> Int
-    binaryFileHead["dtOrig"]                    = read(io, UInt16) |> ntoh |> Int
-    binaryFileHead["ns"]                        = read(io, UInt16) |> ntoh |> Int
-    binaryFileHead["nsOrig"]                    = read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["job"]                       = Base.read(io, Int32) |> ntoh |> Int
+    binaryFileHead["line"]                      = Base.read(io, Int32) |> ntoh |> Int
+    binaryFileHead["reel"]                      = Base.read(io, Int32) |> ntoh |> Int
+    binaryFileHead["dataTracePerEnsemble"]      = Base.read(io, Int16) |> ntoh |> Int
+    binaryFileHead["auxiliaryTracePerEnsemble"] = Base.read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["dt"]                        = Base.read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["dtOrig"]                    = Base.read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["ns"]                        = Base.read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["nsOrig"]                    = Base.read(io, UInt16) |> ntoh |> Int
     t                                           = zeros(Int16, 138)
     read!(io, t)
     t = Int.(ntoh.(t))
@@ -59,9 +71,9 @@ function readsegyfilehead(io::IO)
          "measurementSystem", "impulseSignalPolarity", "vibratoryPolarityCode")
     filldict!(binaryFileHead, k, t)
     binaryFileHead["unassigned1"]               = t[19:end]
-    binaryFileHead["segyFormatRevisionNumber"]  = read(io, UInt16) |> ntoh |> Int
-    binaryFileHead["fixedLengthTraceFlag"]      = read(io, Int16) |> ntoh |> Int
-    binaryFileHead["numberOfExtTextualHeaders"] = read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["segyFormatRevisionNumber"]  = Base.read(io, UInt16) |> ntoh |> Int
+    binaryFileHead["fixedLengthTraceFlag"]      = Base.read(io, Int16) |> ntoh |> Int
+    binaryFileHead["numberOfExtTextualHeaders"] = Base.read(io, UInt16) |> ntoh |> Int
     t                                           = zeros(Int16, 47)
     read!(io, t)
     t = Int.(ntoh.(t))
@@ -69,14 +81,14 @@ function readsegyfilehead(io::IO)
     extendedTextualFileHead = []
     if binaryFileHead["numberOfExtTextualHeaders"] > 0
         for i = 1:binaryFileHead["numberOfExtTextualHeaders"]
-            s = read(io, 3200) |> String
+            s = Base.read(io, 3200) |> String
             push!(extendedTextualFileHead, s)
         end
     end
     return (taperlabel = taperLabel, txtfh = textualFileHead, bfh = binaryFileHead, etxtfh = extendedTextualFileHead)
 end
 
-function readsegytracehead(io::IO)
+function readtracehead(io::IO)
     th = Dict()
 
     t = zeros(Int32, 7)
@@ -98,8 +110,8 @@ function readsegytracehead(io::IO)
          "sourceDatumElevation", "sourceWaterDepth", "groupWaterDepth")
     filldict!(th, k, t)
 
-    th["elevationScalar"] = read(io, Int16) |> ntoh |> Int
-    th["sourceGroupScalar"] = read(io, Int16) |> ntoh |> Int
+    th["elevationScalar"] = Base.read(io, Int16) |> ntoh |> Int
+    th["sourceGroupScalar"] = Base.read(io, Int16) |> ntoh |> Int
 
     t = zeros(Int32, 4)
     read!(io, t)
@@ -115,8 +127,8 @@ function readsegytracehead(io::IO)
          "delayRecordingTime", "muteTimeStart", "muteTimeEnd")
     filldict!(th, k, t)
 
-    th["ns"] = read(io, UInt16) |> ntoh |> Int
-    th["dt"] = read(io, UInt16) |> ntoh |> Int
+    th["ns"] = Base.read(io, UInt16) |> ntoh |> Int
+    th["dt"] = Base.read(io, UInt16) |> ntoh |> Int
 
     t = zeros(Int16, 31)
     read!(io, t)
@@ -136,28 +148,28 @@ function readsegytracehead(io::IO)
     k = ("cdpX", "cdpY", "inline3D", "crossline3D", "shotPoint")
     filldict!(th, k, t)
 
-    th["shotPointScalar"] = read(io, Int16) |> ntoh |> Int
-    th["traceValueMeasurementUnit"] = read(io, Int16) |> ntoh |> Int
-    th["transductionConstantMantissa"] = read(io, Int32) |> ntoh |> Int
+    th["shotPointScalar"] = Base.read(io, Int16) |> ntoh |> Int
+    th["traceValueMeasurementUnit"] = Base.read(io, Int16) |> ntoh |> Int
+    th["transductionConstantMantissa"] = Base.read(io, Int32) |> ntoh |> Int
     t = zeros(Int16, 5)
     read!(io, t)
     t = Int.(ntoh.(t))
     k = ("transductionConstantPower", "transductionUnit", "traceIdentifier", "scalarTraceHeader", "sourceType")
     filldict!(th, k, t)
 
-    th["sourceEnergyDirectionMantissa"] = read(io, Int32) |> ntoh |> Int
-    th["sourceEnergyDirectionExponent"] = read(io, Int16) |> ntoh |> Int
-    th["sourceMeasurementMantissa"]     = read(io, Int32) |> ntoh |> Int
-    th["sourceMeasurementExponent"]     = read(io, Int16) |> ntoh |> Int
-    th["sourceMeasurementUnit"]         = read(io, Int16) |> ntoh |> Int
-    th["unassignedInt1"]                = read(io, Int32) |> ntoh |> Int
-    th["unassignedInt2"]                = read(io, Int32) |> ntoh |> Int
+    th["sourceEnergyDirectionMantissa"] = Base.read(io, Int32) |> ntoh |> Int
+    th["sourceEnergyDirectionExponent"] = Base.read(io, Int16) |> ntoh |> Int
+    th["sourceMeasurementMantissa"]     = Base.read(io, Int32) |> ntoh |> Int
+    th["sourceMeasurementExponent"]     = Base.read(io, Int16) |> ntoh |> Int
+    th["sourceMeasurementUnit"]         = Base.read(io, Int16) |> ntoh |> Int
+    th["unassignedInt1"]                = Base.read(io, Int32) |> ntoh |> Int
+    th["unassignedInt2"]                = Base.read(io, Int32) |> ntoh |> Int
 
     return th
 end
 
-function readsegytrace(io::IO, fhdr::Dict)
-    hdr = readsegytracehead(io)
+function readtrace(io::IO, fhdr::Dict)
+    hdr = readtracehead(io)
     if fhdr["dataSampleFormat"] == 5
         t = zeros(Float32, fhdr["ns"])
     elseif fhdr["dataSampleFormat"] == 6
@@ -170,16 +182,17 @@ function readsegytrace(io::IO, fhdr::Dict)
     return SEGYFrame(hdr, t)
 end
 
-function readsegy(io::IO)
-    fh = readsegyfilehead(io)
+function read(io::IO)
+    fh = readfilehead(io)
     traces = []
     while !eof(io)
-        t = readsegytrace(io, fh.bfh)
+        t = readtrace(io, fh.bfh)
         push!(traces, t)
     end
     return (filehead = fh, traces = traces)
 end
 
-function readsegy(p::AbstractString)
+function read(p::AbstractString)
     return open(readsegy, p, "r")
+end
 end

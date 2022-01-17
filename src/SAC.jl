@@ -71,19 +71,19 @@ function readhead(io::IO)
     read!(io, hc)
     hf = Float64.(hf)
     hf[hf.==-12345.0] .= NaN
-    hi = Int64.(hi)
-    hi[hi.==-12345] .= NaN
+    hi = Float64.(hi)
+    hi[hi.==-12345.0] .= NaN
     htu = Vector{Tuple{String,Any}}(undef, 0)
     for i = 1:70
-        push!(htu, (varname[i], hf[i]))
+        push!(htu, (SAC_HEADER_LIST[i], hf[i]))
     end
     for i = 1:40
-        push!(htu, (varname[70+i], hi[i]))
+        push!(htu, (SAC_HEADER_LIST[70+i], isnan(hi[i]) ? NaN : Int(hi[i])))
     end
-    push!(htu, (varname[111], simplify(hc[1:8])))
-    push!(htu, (varname[112], simplify(hc[9:24])))
+    push!(htu, (SAC_HEADER_LIST[111], simplify(hc[1:8])))
+    push!(htu, (SAC_HEADER_LIST[112], simplify(hc[9:24])))
     for i = 3:23
-        push!(htu; (varname[110+i], simplify(hc[(i*8+1):(i*8+8)])))
+        push!(htu, (SAC_HEADER_LIST[110+i], simplify(hc[(i*8+1):(i*8+8)])))
     end
     head = Dict(htu)
     for i in ENUMERATE_VAR_LIST
@@ -124,8 +124,7 @@ function read(io::IO)
         @error "header: leven is NaN"
         return (hdr = head, data = Float64[])
     end
-    if head["iftype"]
-        not in ("IXY", "IRLIM", "IAMPH", "IXYZ", "ITIME")
+    if head["iftype"] ∉ ("IXY", "IRLIM", "IAMPH", "IXYZ", "ITIME")
         @error "header: iftype is illegal"
         return (hdr = head, data = Float64[])
     end
@@ -153,7 +152,7 @@ read(path::String) -> (hdr=head, data=data)
 read sac data from opened io
 """
 function read(path::AbstractString)
-    return open(readsac, path, "r")
+    return open(read, path, "r")
 end
 
 function autocal!(hdr, data)
@@ -179,18 +178,18 @@ function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
         hname = SAC_HEADER_LIST[i]
         if isequal(hdr[hname], NaN)
             if i <= 70
-                write(io, Float32(-12345.0))
+                Base.write(io, Float32(-12345.0))
             else
-                write(io, Int32(-12345))
+                Base.write(io, Int32(-12345))
             end
         else
             if i <= 70
-                write(io, Float32(hdr[hname]))
+                Base.write(io, Float32(hdr[hname]))
             else
                 if hname in ENUMERATE_VAR_LIST
-                    write(io, Int32(hashtable[hdr[hname]]))
+                    Base.write(io, Int32(hashtable[hdr[hname]]))
                 else
-                    write(io, Int32(hdr[hname]))
+                    Base.write(io, Int32(hdr[hname]))
                 end
             end
         end
@@ -199,18 +198,18 @@ function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
     v = hdr[hname]
     for i = 1:8
         if i <= length(v)
-            write(io, UInt8(v[i]))
+            Base.write(io, UInt8(v[i]))
         else
-            write(io, UInt8(' '))
+            Base.write(io, UInt8(' '))
         end
     end
     hname = SAC_HEADER_LIST[112]
     v = hdr[hname]
     for i = 1:16
         if i <= length(v)
-            write(io, UInt8(v[i]))
+            Base.write(io, UInt8(v[i]))
         else
-            write(io, UInt8(' '))
+            Base.write(io, UInt8(' '))
         end
     end
     for i = 113:length(SAC_HEADER_LIST)
@@ -218,17 +217,17 @@ function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
         v = hdr[hname]
         for j = 1:8
             if j <= length(v)
-                write(io, UInt8(v[j]))
+                Base.write(io, UInt8(v[j]))
             else
-                write(io, UInt8(' '))
+                Base.write(io, UInt8(' '))
             end
         end
     end
     if hdr["iftype"] == "ITIME"
-        write(io, Float32.(data))
+        Base.write(io, Float32.(data))
     else
         for i in data
-            write(io, Float32.(i))
+            Base.write(io, Float32.(i))
         end
     end
     return nothing
@@ -244,9 +243,9 @@ end
 """
 write(io::IO, frame::WaveFrame; autocal::Bool=true)
 """
-function write(path::AbstractString, frame::WaveFrame; autocalc::Bool = true)
+function write(path::AbstractString, hdr::Dict, data; autocalc::Bool = true)
     open(path, "w") do io
-        write(io, frame; autocalc = autocalc)
+        write(io, hdr, data; autocalc = autocalc)
     end
     return nothing
 end
@@ -285,17 +284,17 @@ end
 standardname(frame::WaveFrame; standard::AbstractString = "iris",
 quality::AbstractString = "D", kwargs...)
 """
-function standardname(frame::WaveFrame; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
+function standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
     if standard == "iris"
-        return @sprintf("%s.%s.%s.%s.%s.%04d.%02d.%02d.%02d.%02d.%02d.%03d.SAC", frame.meta["knetwk"],
-                        frame.meta["kstnm"], frame.meta["khole"], frame.meta["kcmpnm"], quality, year(frame.begintime),
-                        month(frame.begintime), day(frame.begintime), hour(frame.begintime), minute(frame.begintime),
-                        second(frame.begintime), millisecond(frame.begintime))
+        return @sprintf("%s.%s.%s.%s.%s.%04d.%02d.%02d.%02d.%02d.%02d.%03d.SAC", hdr["knetwk"], hdr["kstnm"],
+                        hdr["khole"], hdr["kcmpnm"], quality, year(frame.begintime), month(frame.begintime),
+                        day(frame.begintime), hour(frame.begintime), minute(frame.begintime), second(frame.begintime),
+                        millisecond(frame.begintime))
     else
         return @sprintf("%04d.%03d.%02d.%02d.%02d.%04d.%s.%s.%s.%s.%s.SAC", year(frame.begintime),
                         dayofyear(frame.begintime), hour(frame.begintime), minute(frame.begintime),
-                        second(frame.begintime), millisecond(frame.begintime), frame.meta["knetwk"],
-                        frame.meta["kstnm"], frame.meta["khole"], frame.meta["kcmpnm"], quality)
+                        second(frame.begintime), millisecond(frame.begintime), hdr["knetwk"], hdr["kstnm"],
+                        hdr["khole"], hdr["kcmpnm"], quality)
     end
 end
 end
