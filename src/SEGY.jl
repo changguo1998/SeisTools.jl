@@ -50,9 +50,9 @@ end
 
 function readfilehead(io::IO)
     # taperLabel = Base.read(io, 128) |> String
-    taperLabel                                  = []
+    taperLabel                                  = ""
     textualFileHead                             = Base.read(io, 3200) |> String
-    binaryFileHead                              = Dict()
+    binaryFileHead                              = Dict{String, Any}()
     binaryFileHead["job"]                       = Base.read(io, Int32) |> ntoh |> Int
     binaryFileHead["line"]                      = Base.read(io, Int32) |> ntoh |> Int
     binaryFileHead["reel"]                      = Base.read(io, Int32) |> ntoh |> Int
@@ -78,7 +78,7 @@ function readfilehead(io::IO)
     read!(io, t)
     t = Int.(ntoh.(t))
     binaryFileHead["unassigned2"] = t
-    extendedTextualFileHead = []
+    extendedTextualFileHead = String[]
     if binaryFileHead["numberOfExtTextualHeaders"] > 0
         for i = 1:binaryFileHead["numberOfExtTextualHeaders"]
             s = Base.read(io, 3200) |> String
@@ -89,7 +89,7 @@ function readfilehead(io::IO)
 end
 
 function readtracehead(io::IO)
-    th = Dict()
+    th = Dict{String, Real}()
 
     t = zeros(Int32, 7)
     read!(io, t)
@@ -179,7 +179,7 @@ function readtrace(io::IO, fhdr::Dict)
     end
     read!(io, t)
     t = Float64.(ntoh.(t))
-    return SEGYFrame(hdr, t)
+    return (hdr=hdr, data=t)
 end
 
 function read(io::IO)
@@ -193,6 +193,6 @@ function read(io::IO)
 end
 
 function read(p::AbstractString)
-    return open(readsegy, p, "r")
+    return open(read, p, "r")
 end
 end
