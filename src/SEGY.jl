@@ -52,7 +52,7 @@ function readfilehead(io::IO)
     # taperLabel = Base.read(io, 128) |> String
     taperLabel                                  = ""
     textualFileHead                             = Base.read(io, 3200) |> String
-    binaryFileHead                              = Dict{String, Any}()
+    binaryFileHead                              = Dict{String,Any}()
     binaryFileHead["job"]                       = Base.read(io, Int32) |> ntoh |> Int
     binaryFileHead["line"]                      = Base.read(io, Int32) |> ntoh |> Int
     binaryFileHead["reel"]                      = Base.read(io, Int32) |> ntoh |> Int
@@ -89,7 +89,7 @@ function readfilehead(io::IO)
 end
 
 function readtracehead(io::IO)
-    th = Dict{String, Real}()
+    th = Dict{String,Real}()
 
     t = zeros(Int32, 7)
     read!(io, t)
@@ -179,7 +179,7 @@ function readtrace(io::IO, fhdr::Dict)
     end
     read!(io, t)
     t = Float64.(ntoh.(t))
-    return (hdr=hdr, data=t)
+    return (hdr = hdr, data = t)
 end
 
 function read(io::IO)

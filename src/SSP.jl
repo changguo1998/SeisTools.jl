@@ -1,5 +1,5 @@
 module SSP
-using Statistics
+using Statistics, FFTW
 
 function detrend!(x::AbstractVector; type::AbstractString = "LeastSquare")
     N = length(x)
@@ -72,9 +72,65 @@ end
 
 function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     y = bandpass(x, w1, w2, fs; n = n)
-    for i = 1:length(x)
-        x[i] = y[i]
-    end
+    x .= y
     return nothing
+end
+
+function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+    @assert fs > 0.0
+    ftr = digitalfilter(Lowpass(w; fs = fs), Butterworth(n))
+    return filtfilt(ftr, x)
+end
+
+function lowpass!(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+    y = lowpass(x, w, fs; n = n)
+    x .= y
+    return nothing
+end
+
+function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+    @assert fs > 0.0
+    ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
+    return filtfilt(ftr, x)
+end
+
+function highpass!(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+    y = highpass(x, w, fs; n = n)
+    x .= y
+    return nothing
+end
+
+function trans(x::AbstractVector, from::NamedTuple{(:z, :p, :k),Tuple{Vector{T},Vector{T},S}},
+               to::NamedTuple{(:z, :p, :k),Tuple{Vector{T},Vector{T},S}}, fs::Real) where {T<:Complex,S<:Real}
+    n = length(x)
+    m = floor(Int, n / 2)
+    X = fft(x)
+    Y = zeros(ComplexF64, n)
+    rmax = -Inf
+    for i = 1:m
+        ω = 2 * π * 1im * i * fs / n
+        r = to.k / from.k
+        for p in from.p
+            r *= ω - p
+        end
+        for z in to.z
+            r *= ω - z
+        end
+        for p in to.p
+            r /= ω - p
+        end
+        for z in from.z
+            r /= ω - z
+        end
+        rmax = max(rmax, abs(r))
+        Y[i] = X[i]*r
+        Y[n-i+1] = conj(Y[i])
+    end
+    if rmax > 1e5
+        @warn "Waveform in some frequency is scaled larger than 1e5"
+    end
+    ifft!(Y)
+    y = real.(Y)
+    return y
 end
 end

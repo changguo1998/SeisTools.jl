@@ -5,18 +5,21 @@ a simple module to help parse commandline parameters
 
 usage:
 
-1. use `newoptionlist()` to get an empty option list
+ 1. use `newoptionlist()` to get an empty option list
+
 ```julia
 opts = ArgParser.newoptionlist()
 ```
 
-2. add options using `addopt!()``
+ 2. add options using `addopt!()``
+
 ```julia
 ArgParser.addopt!(opts, "fullname", "defaultvalue", "abbrevationname")
 ...
 ```
 
-3. parse parameters
+ 3. parse parameters
+
 ```julia
 (named_parameter, positional_parameter) = ArgParser.parse(ARGS, opts)
 ```
