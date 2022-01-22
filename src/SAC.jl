@@ -89,6 +89,8 @@ function readhead(io::IO)
     for i in ENUMERATE_VAR_LIST
         if !isnan(head[i])
             head[i] = indextable[head[i]]
+        else
+            head[i] = "IUNKN"
         end
     end
     for i in LOGICAL_VAR_LIST
@@ -187,7 +189,11 @@ function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
                 Base.write(io, Float32(hdr[hname]))
             else
                 if hname in ENUMERATE_VAR_LIST
-                    Base.write(io, Int32(hashtable[hdr[hname]]))
+                    if typeof(hdr[hname]) <: AbstractString
+                        Base.write(io, Int32(hashtable[hdr[hname]]))
+                    else
+                        Base.write(io, Int32(-12345))
+                    end
                 else
                     Base.write(io, Int32(hdr[hname]))
                 end
@@ -287,14 +293,12 @@ quality::AbstractString = "D", kwargs...)
 function standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
     if standard == "iris"
         return @sprintf("%s.%s.%s.%s.%s.%04d.%02d.%02d.%02d.%02d.%02d.%03d.SAC", hdr["knetwk"], hdr["kstnm"],
-                        hdr["khole"], hdr["kcmpnm"], quality, year(frame.begintime), month(frame.begintime),
-                        day(frame.begintime), hour(frame.begintime), minute(frame.begintime), second(frame.begintime),
-                        millisecond(frame.begintime))
+                        hdr["khole"], hdr["kcmpnm"], quality, hdr["nzyear"], month(DateTime(hdr)), day(DateTime(hdr)),
+                        hdr["nzhour"], hdr["nzmin"], hdr["nzsec"], hdr["nzmsec"])
     else
-        return @sprintf("%04d.%03d.%02d.%02d.%02d.%04d.%s.%s.%s.%s.%s.SAC", year(frame.begintime),
-                        dayofyear(frame.begintime), hour(frame.begintime), minute(frame.begintime),
-                        second(frame.begintime), millisecond(frame.begintime), hdr["knetwk"], hdr["kstnm"],
-                        hdr["khole"], hdr["kcmpnm"], quality)
+        return @sprintf("%04d.%03d.%02d.%02d.%02d.%04d.%s.%s.%s.%s.%s.SAC", hdr["nzyear"], hdr["nzjday"], hdr["nzhour"],
+                        hdr["nzmin"], hdr["nzsec"], hdr["nzmsec"], hdr["knetwk"], hdr["kstnm"], hdr["khole"],
+                        hdr["kcmpnm"], quality)
     end
 end
 end

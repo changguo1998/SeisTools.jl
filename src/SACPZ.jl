@@ -93,7 +93,7 @@ function pzfmt2dict(d::Dict)
     return nd
 end
 
-function print(io::IO, x::Dict{String, Any})
+function print(io::IO, x::Dict{String,Any})
     Printf.@printf(io, "* **********************************\n")
     for ih = 1:length(HEAD)
         h = HEAD[ih]

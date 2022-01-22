@@ -123,7 +123,7 @@ function trans(x::AbstractVector, from::NamedTuple{(:z, :p, :k),Tuple{Vector{T},
             r /= ω - z
         end
         rmax = max(rmax, abs(r))
-        Y[i] = X[i]*r
+        Y[i] = X[i] * r
         Y[n-i+1] = conj(Y[i])
     end
     if rmax > 1e5
