@@ -4,4 +4,3 @@
 *.bak.jl
 deps/deps.jl
 .vscode/
-src/.JuliaFormatter.toml

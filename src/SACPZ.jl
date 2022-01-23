@@ -1,6 +1,6 @@
 module SACPZ
 using Dates
-import Base: parse
+using Base: parse
 using Printf
 
 HEAD = ("NETWORK", "STATION", "LOCATION", "CHANNEL", "CREATED", "START", "END", "DESCRIPTION", "LATITUDE", "LONGITUDE",

@@ -1,16 +1,22 @@
 module SSP
 using Statistics, FFTW
 
-function detrend!(x::AbstractVector; type::AbstractString = "LeastSquare")
+"""
+detrend!(x::AbstractVector; type=:LeastSquare)
+
+Remove the linear content of x. See `detrend` for more information
+"""
+function detrend!(x::AbstractVector; type::Symbol = :LeastSquare)
+    @assert (type in (:LeastSquare, :Mean, :SimpleLinear)) "type must be one of :LeastSquare, Mean or SimpleLinear"
     N = length(x)
     ZERO = convert(eltype(x), 0.0)
-    if type == "Mean"
+    if type == :Mean
         k = ZERO
         b = mean(x)
-    elseif type == "SimpleLinear"
+    elseif type == :SimpleLinear
         k = (x[end] - x[1]) / (N - 1)
         b = x[1]
-    elseif type == "LeastSquare"
+    elseif type == :LeastSquare
         xm = (N + 1.0) / 2.0
         x2m = (N + 1.0) * (2.0 * N + 1.0) / 6.0
         ym = mean(x)
@@ -31,49 +37,70 @@ function detrend!(x::AbstractVector; type::AbstractString = "LeastSquare")
     return nothing
 end
 
-function detrend(x::AbstractVector; type::AbstractString = "LeastSquare")
+"""
+detrend(x::AbstractVector; type=:LeastSquare)
+
+Remove the linear content of x. The liear type can be
+
+  - `:LeastSquare`(default) using Least Square method to get the linear content
+  - `:Mean` using mean of x
+  - `:SimpleLinear` using the first and last sample to get linear content
+"""
+function detrend(x::AbstractVector; type::Symbol = :LeastSquare)
     y = deepcopy(x)
     detrend!(y; type = type)
     return y
 end
 
-function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05)
+function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     @assert ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
     @assert ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
+    @assert (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
     N = length(x)
     M = round(Int, N * ratio)
-    for i = 1:M
-        x[i] *= f((i - 1) / (M - 1))
-        x[N-i+1] *= f((i - 1) / (M - 1))
+    if side == :Head || side == :Both
+        for i = 1:M
+            x[i] *= f((i - 1) / (M - 1))
+        end
+    end
+    if side == :Tail || side == :Both
+        for i = 1:M
+            x[N-i+1] *= f((i - 1) / (M - 1))
+        end
     end
     return nothing
 end
 
-function taper(f::Function, x::AbstractVector; ratio::Real = 0.05)
-    y = deepcopy(x)
-    taper!(f, x; ratio = ratio)
-    return y
-end
-
-function taper!(x::AbstractVector; ratio::Real = 0.05)
-    taper!(identity, x; ratio = ratio)
+function taper!(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+    taper!(identity, x; ratio = ratio, side = side)
     return nothing
 end
 
-function taper(x::AbstractVector; ratio::Real = 0.05)
-    return taper(identity, x; ratio = ratio)
+function taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+    y = deepcopy(x)
+    taper!(f, y; ratio = ratio, side = side)
+    return y
 end
+
+function taper(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+    y = deepcopy(x)
+    taper!(identity, y; ratio = ratio, side = side)
+    return y
+end
+
+# function taper!(x::AbstractVector; ratio::Real = 0.05)
+#     taper!(identity, x; ratio = ratio)
+#     return nothing
+# end
+
+# function taper(x::AbstractVector; ratio::Real = 0.05)
+#     return taper(identity, x; ratio = ratio)
+# end
 
 function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     @assert fs > 0.0
     ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
-end
-
-function bandpass!(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    y = bandpass(x, w1, w2, fs; n = n)
-    x .= y
-    return nothing
 end
 
 function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
@@ -82,26 +109,26 @@ function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4
     return filtfilt(ftr, x)
 end
 
-function lowpass!(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    y = lowpass(x, w, fs; n = n)
-    x .= y
-    return nothing
-end
-
 function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     @assert fs > 0.0
     ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
-function highpass!(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    y = highpass(x, w, fs; n = n)
-    x .= y
-    return nothing
+struct ZPK
+    z::Vector{ComplexF64}
+    p::Vector{ComplexF64}
+    k::Float64
+    function ZPK(z::Vector{ComplexF64}, p::Vector{ComplexF64}, k::Float64 = 1.0)
+        return new(z, p, k)
+    end
 end
 
-function trans(x::AbstractVector, from::NamedTuple{(:z, :p, :k),Tuple{Vector{T},Vector{T},S}},
-               to::NamedTuple{(:z, :p, :k),Tuple{Vector{T},Vector{T},S}}, fs::Real) where {T<:Complex,S<:Real}
+function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
+    return ZPK(ComplexF64.(z), ComplexF64.(p), Float64(k))
+end
+
+function trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
     n = length(x)
     m = floor(Int, n / 2)
     X = fft(x)
@@ -124,8 +151,11 @@ function trans(x::AbstractVector, from::NamedTuple{(:z, :p, :k),Tuple{Vector{T},
         end
         rmax = max(rmax, abs(r))
         Y[i] = X[i] * r
-        Y[n-i+1] = conj(Y[i])
+        if i > 1
+            Y[n-i+2] = conj(Y[i])
+        end
     end
+    Y[m+1] = 0.0
     if rmax > 1e5
         @warn "Waveform in some frequency is scaled larger than 1e5"
     end
