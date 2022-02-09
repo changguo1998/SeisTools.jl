@@ -52,6 +52,11 @@ function detrend(x::AbstractVector; type::Symbol = :LeastSquare)
     return y
 end
 
+"""
+taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+
+see `taper`
+"""
 function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     @assert ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
     @assert ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
@@ -76,6 +81,15 @@ function taper!(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     return nothing
 end
 
+"""
+taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+
+Add taper to waveform.
+
+- `f` is window function. default is f(x) = x.
+- `ratio` is window length, between 0 - 0.5
+- `side` should be one of `:Both`, `:Head` or `Tail`
+"""
 function taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
     taper!(f, y; ratio = ratio, side = side)
@@ -88,27 +102,27 @@ function taper(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     return y
 end
 
-# function taper!(x::AbstractVector; ratio::Real = 0.05)
-#     taper!(identity, x; ratio = ratio)
-#     return nothing
-# end
-
-# function taper(x::AbstractVector; ratio::Real = 0.05)
-#     return taper(identity, x; ratio = ratio)
-# end
-
+"""
+bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+"""
 function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     @assert fs > 0.0
     ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
+"""
+lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+"""
 function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     @assert fs > 0.0
     ftr = digitalfilter(Lowpass(w; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
+"""
+highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+"""
 function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
     @assert fs > 0.0
     ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
@@ -128,6 +142,11 @@ function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
     return ZPK(ComplexF64.(z), ComplexF64.(p), Float64(k))
 end
 
+"""
+trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
+
+add or remove response. the response is applied in zpk form
+"""
 function trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
     n = length(x)
     m = floor(Int, n / 2)
