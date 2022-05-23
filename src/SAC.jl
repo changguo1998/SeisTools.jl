@@ -44,7 +44,7 @@ indextable = Dict([(1, "ITIME"), (2, "IRLIM"), (3, "IAMPH"), (4, "IXY"), (5, "IU
 hashtable = Dict([(i.second, i.first) for i in collect(indextable)])
 
 function simplify(x::Vector{UInt8})
-    idx = findfirst(x .== '\0')
+    idx = findfirst(==(0x00), x)
     if isnothing(idx)
         return String(strip(String(Char.(x)), [' ', '\0']))
     else
@@ -99,6 +99,7 @@ function readhead(io::IO)
         end
     end
     if head["nvhdr"] == 7
+        @debug "SAC version: 7"
         foot = zeros(Float64, 22)
         read!(io, foot)
         for i = 1:length(VERSION_7_FOOT_VAR)
@@ -130,6 +131,7 @@ function read(io::IO)
         @error "header: iftype is illegal"
         return (hdr = head, data = Float64[])
     end
+    @debug "Data type: $(head["iftype"])"
     if head["iftype"] == "ITIME"
         read!(io, td)
         return (hdr = head, data = td)
@@ -167,7 +169,7 @@ function autocal!(hdr, data)
 end
 
 """
-write(io::IO, frame::WaveFrame; autocal::Bool=true)
+write(io::IO, hdr::Dict, data; autocal::Bool=true)
 
 write WaveFrame to file with SAC format. If `autocal` is true, the header variable:
 `depmax`, `depmen`, `depmin` will be update before writting.

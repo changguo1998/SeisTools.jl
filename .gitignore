@@ -4,3 +4,6 @@
 *.bak.jl
 deps/deps.jl
 .vscode/
+.gitignore
+.gcbakup
+.gcbaksearchignore
