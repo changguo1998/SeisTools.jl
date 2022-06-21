@@ -1,6 +1,12 @@
 module SSP
 using Statistics, FFTW
 
+export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans
+
+macro linearscale(x, x1, x2, y1, y2)
+    return :( ($(esc(x)) - $(esc(x1))) / ($(esc(x2)) - $(esc(x1))) * ($(esc(y2)) - $(esc(y1))) + $(esc(y1)))
+end
+
 """
 detrend!(x::AbstractVector; type=:LeastSquare)
 
@@ -86,9 +92,9 @@ taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
 
 Add taper to waveform.
 
-- `f` is window function. default is f(x) = x.
-- `ratio` is window length, between 0 - 0.5
-- `side` should be one of `:Both`, `:Head` or `Tail`
+  - `f` is window function. default is f(x) = x.
+  - `ratio` is window length, between 0 - 0.5
+  - `side` should be one of `:Both`, `:Head` or `Tail`
 """
 function taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
