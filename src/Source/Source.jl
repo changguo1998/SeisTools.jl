@@ -1,6 +1,5 @@
 module Source
-using LinearAlgebra, Plots
-pyplot()
+using LinearAlgebra
 include("types.jl")
 export Mechanism, DoubleCouple, MomentTensor, normal2DC, normalvector, beachball
 
