@@ -31,5 +31,6 @@ include("SAC.jl")
 include("SEGY.jl")
 include("SSP.jl")
 include("SACPZ.jl")
+include("Geodesy.jl")
 
 end # module
