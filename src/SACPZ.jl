@@ -1,7 +1,6 @@
 module SACPZ
-using Dates
-import Base: parse
-using Printf
+using Dates, Printf
+using Base: parse as baseparse
 
 HEAD = ("NETWORK", "STATION", "LOCATION", "CHANNEL", "CREATED", "START", "END", "DESCRIPTION", "LATITUDE", "LONGITUDE",
         "ELEVATION", "DEPTH", "DIP", "AZIMUTH", "SAMPLE_RATE", "INPUT_UNIT", "OUTPUT_UNIT", "INSTTYPE", "INSTGAIN",
@@ -29,10 +28,10 @@ function parse_one_station(lines::Vector{T}) where {T<:AbstractString}
                 elseif h in ("CREATED", "START", "END") # datetime
                     d[h] = DateTime(strip(l[idx+1:end]))
                 elseif h in ("LATITUDE", "LONGITUDE", "ELEVATION", "DEPTH", "DIP", "AZIMUTH", "SAMPLE_RATE", "A0") # float
-                    d[h] = parse(Float64, strip(l[idx+1:end]))
+                    d[h] = baseparse(Float64, strip(l[idx+1:end]))
                 elseif h in ("INSTGAIN", "SENSITIVITY")
                     tl = split(strip(l); keepempty = false)
-                    d[h] = [parse(Float64, tl[end-1]), tl[end]]
+                    d[h] = [baseparse(Float64, tl[end-1]), tl[end]]
                 end
             end
         end
@@ -44,25 +43,25 @@ function parse_one_station(lines::Vector{T}) where {T<:AbstractString}
     end
     # zeros
     idx = findfirst(x -> contains(x, "ZEROS"), lines)
-    nz = parse(Int, strip(lines[idx][6:end]))
+    nz = baseparse(Int, strip(lines[idx][6:end]))
     ZS = zeros(ComplexF64, nz)
     for i = 1:nz
         t = split(strip(lines[idx+i]); keepempty = false)
-        ZS[i] = ComplexF64(parse(Float64, t[1]), parse(Float64, t[2]))
+        ZS[i] = ComplexF64(baseparse(Float64, t[1]), baseparse(Float64, t[2]))
     end
     d["ZEROS"] = ZS
     # poles
     idx = findfirst(x -> contains(x, "POLES"), lines)
-    np = parse(Int, strip(lines[idx][6:end]))
+    np = baseparse(Int, strip(lines[idx][6:end]))
     PS = zeros(ComplexF64, np)
     for i = 1:np
         t = split(strip(lines[idx+i]); keepempty = false)
-        PS[i] = ComplexF64(parse(Float64, t[1]), parse(Float64, t[2]))
+        PS[i] = ComplexF64(baseparse(Float64, t[1]), baseparse(Float64, t[2]))
     end
     idx = findfirst(x -> contains(x, "CONSTANT"), lines)
     d["POLES"] = PS
     # constant
-    C = parse(Float64, strip(lines[idx][9:end]))
+    C = baseparse(Float64, strip(lines[idx][9:end]))
     d["CONSTANT"] = C
     return d
 end
