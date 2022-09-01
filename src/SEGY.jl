@@ -22,17 +22,48 @@ const ASCII_TABLE = (0, 1, 2, 3, 156, 9, 134, 127, 151, 141, 142, 11, 12, 13, 14
                      28, 29, 29, 30, 31, 127, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
                      50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 91, 92, 93, 94, 95, 96, 123, 124, 125,
                      126)
-const FILE_HEADER_VAR_LIST = ("job", "line", "reel", "dataTracePerEnsemble", "AuxiliaryTracePerEnsemble", "dt",
+const FILE_HEADER_VAR_LIST = ("job", "line", "reel", "dataTracePerEnsemble", "auxiliaryTracePerEnsemble", "dt",
                               "dtOrig", "ns", "nsOrig", "dataSampleFormat", "ensembleFold", "traceSorting",
                               "verticalSumCode", "sweepFrequencyStart", "sweepFrequencyEnd", "sweepLength", "sweepType",
                               "sweepChannel", "sweepTaperLengthStart", "sweepTaperLengthEnd", "taperType",
                               "correlatedDataTraces", "binaryGain", "amplitudeRecoveryMethod", "measurementSystem",
-                              "impulseSignalPolarity", "vibratoryPolarityCode", "unassigned1",
-                              "segyFormatRevisionNumber", "fixedLengthTraceFlag", "numberOfExtTextualHeaders",
-                              "unassigned2")
-const FILE_HEADER_VAR_TYPE_LIST = (Int32, Int32, Int32, Int16, UInt16, UInt16, UInt16, UInt16, UInt16, Int16, Int16,
-                                   Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16,
-                                   Int16, Int16, Int16, Int16)
+                              "impulseSignalPolarity", "vibratoryPolarityCode", "segyFormatRevisionNumber",
+                              "fixedLengthTraceFlag", "numberOfExtTextualHeaders")
+const FILE_HEADER_VAR_TYPE_LIST = (Int32, Int32, Int32, Int16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, Int16,
+                                   UInt16, UInt16, UInt16, UInt16, Int16, UInt16, UInt16, UInt16, UInt16, Int16, UInt16,
+                                   UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, Int16, UInt16)
+const TRACE_HEADER_VAR_LIST = ("traceSequenceLine", "traceSequenceFile", "fileRecord", "traceNumber",
+                               "energySourcePoing", "cdp", "cdpTrace", "traceIdenitifactionCode", "nSummedTraces",
+                               "nStackedTraces", "dataUse", "offset", "receiverGroupElevation",
+                               "sourceSurfaceElevation", "sourceDepth", "receiverDatumElevation",
+                               "sourceDatumElevation", "sourceWaterDepth", "groupWaterDepth", "elevationScalar",
+                               "sourceGroupScalar", "sourceX", "sourceY", "groupX", "groupY", "coordinateUnits",
+                               "weatheringVelocity", "subWeatheringVelocity", "sourceUpholeTime", "groupUpholeTime",
+                               "sourceStaticCorrection", "groupStaticCorrection", "totalStaticApplied", "lagTimeA",
+                               "lagTimeB", "delayRecordingTime", "muteTimeStart", "muteTimeEnd", "ns", "dt", "gainType",
+                               "instrumentGainConstant", "instrumentInitialGain", "correlated", "sweepFrequencyStart",
+                               "sweepFrequencyEnd", "sweepLength", "sweepType", "sweepTraceTaperLengthStart",
+                               "sweepTraceTaperLengthEnd", "taperType", "aliasFilterFrequency", "aliasFilterSlope",
+                               "notchFilterFrequency", "notchFilterSlope", "lowCutFrequency", "highCutFrequency",
+                               "lowCutSlope", "highCutSlope", "yearDataRecorded", "dayOfYear", "hourOfDay",
+                               "minuteOfHour", "secondOfMinute", "timeBaseCode", "traceWeightningFactor",
+                               "geophoneGroupNumberOfRoll1", "geophoneGroupNumberFirstTraceOrigField",
+                               "geophoneGroupNumberLastTraceOrigField", "gapSize", "overTravel", "cdpX", "cdpY",
+                               "inline3D", "crossline3D", "shotPoint", "shotPointScalar", "traceValueMeasurementUnit",
+                               "transductionConstantMantissa", "transductionConstantPower", "transductionUnit",
+                               "traceIdentifier", "scalarTraceHeader", "sourceType", "sourceEnergyDirectionMantissa",
+                               "sourceEnergyDirectionExponent", "sourceMeasurementMantissa",
+                               "sourceMeasurementExponent", "sourceMeasurementUnit", "unassignedInt1", "unassignedInt2")
+const TRACE_HEADER_VAR_TYPE_LIST = (Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int16, Int16, Int16, Int16, Int32,
+                                    Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int16, Int16, Int32, Int32, Int32,
+                                    Int32, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16,
+                                    Int16, Int16, UInt16, UInt16, Int16, Int16, Int16, Int16, Int16, Int16, Int16,
+                                    Int16,
+                                    Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16,
+                                    Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int16, Int32,
+                                    Int32, Int32, Int32, Int32, UInt16, UInt16, Int32, Int16, Int16, Int16, Int16,
+                                    Int16,
+                                    Int32, Int16, Int32, Int16, Int16, Int32, Int32)
 
 function ebcdic2ascii(c::Char)
     I = findfirst(EBCDIC_TABLE .== Int(c))
@@ -43,7 +74,7 @@ function ebcdic2ascii(c::Char)
 end
 
 function filldict!(d::Dict, k, t)
-    for i = 1:length(k)
+    for i in eachindex(k)
         d[k[i]] = t[i]
     end
 end
@@ -64,7 +95,7 @@ function readfilehead(io::IO)
     binaryFileHead["nsOrig"]                    = Base.read(io, UInt16) |> ntoh |> Int
     t                                           = zeros(Int16, 138)
     read!(io, t)
-    t = Int.(ntoh.(t))
+    t = Int.(ntoh.(t[1:18]))
     k = ("dataSampleFormat", "ensembleFold", "traceSorting", "verticalSumCode", "sweepFrequencyStart",
          "sweepFrequencyEnd", "sweepLength", "sweepType", "sweepChannel", "sweepTaperLengthStart",
          "sweepTaperLengthEnd", "taperType", "correlatedDataTraces", "binaryGain", "amplitudeRecoveryMethod",
@@ -85,7 +116,7 @@ function readfilehead(io::IO)
             push!(extendedTextualFileHead, s)
         end
     end
-    return (taperlabel = taperLabel, txtfh = textualFileHead, bfh = binaryFileHead, etxtfh = extendedTextualFileHead)
+    return (taperlabel=taperLabel, txtfh=textualFileHead, bfh=binaryFileHead, etxtfh=extendedTextualFileHead)
 end
 
 function readtracehead(io::IO)
@@ -179,7 +210,7 @@ function readtrace(io::IO, fhdr::Dict)
     end
     read!(io, t)
     t = Float64.(ntoh.(t))
-    return (hdr = hdr, data = t)
+    return (hdr=hdr, data=t)
 end
 
 function read(io::IO)
@@ -189,10 +220,65 @@ function read(io::IO)
         t = readtrace(io, fh.bfh)
         push!(traces, t)
     end
-    return (filehead = fh, traces = traces)
+    return (filehead=fh, traces=traces)
 end
 
 function read(p::AbstractString)
     return open(read, p, "r")
 end
+
+function writefilehead(io::IO; taperlabel::String="", textualFileHead::String="",
+                       binaryFileHead::Dict=Dict(), extendedTextualFileHead::Vector{String}=String[])
+    sbuf = zeros(UInt8, 3200)
+    sbuf[1:length(textualFileHead)] .= UInt8.(collect(textualFileHead))
+    Base.write(io, sbuf)
+    for i = 1:27
+        T = FILE_HEADER_VAR_TYPE_LIST[i]
+        Base.write(io, T(binaryFileHead[FILE_HEADER_VAR_LIST[i]]))
+    end
+    unas = zeros(Int8, 240)
+    Base.write(io, unas)
+    for i = 28:30
+        T = FILE_HEADER_VAR_TYPE_LIST[i]
+        Base.write(io, T(binaryFileHead[FILE_HEADER_VAR_LIST[i]]))
+    end
+    unas = zeros(Int8, 47)
+    Base.write(io, unas)
+    for i in eachindex(extendedTextualFileHead)
+        sbuf .= '\0'
+        sbuf[1:length(extendedTextualFileHead[i])] .= UInt8.(collect(extendedTextualFileHead[i]))
+        Base.write(io, sbuf)
+    end
+    return nothing
+end
+
+function writetrace(io::IO, theader::Dict, data::Vector{<:Real})
+    for i = 1:91
+        T = TRACE_HEADER_VAR_TYPE_LIST[i]
+        Base.write(io, T(theader[TRACE_HEADER_VAR_LIST[i]]))
+    end
+    Base.write(io, data)
+    return nothing
+end
+
+function write(io::IO, textualFileHead::String="", binaryFileHead::Dict=Dict(),
+               extendedTextualFileHead::Vector{String}=String[], theader::Vector{Dict}=Dict[],
+                data::Vector{Vector{<:Real}}=Vector{Float64}[])
+    writefilehead(io; textualFileHead=textualFileHead, binaryFileHead=binaryFileHead,
+                  extendedTextualFileHead=extendedTextualFileHead)
+    for i in eachindex(theader)
+        writetrace(io, theader[i], data[i])
+    end
+end
+
+function write(io::IO, textualFileHead::String="", binaryFileHead::Dict=Dict(),
+               extendedTextualFileHead::Vector{String}=String[], theader::Vector{Dict}=Dict[],
+               data::Matrix{<:Real}=zeros(0,0))
+    writefilehead(io; textualFileHead=textualFileHead, binaryFileHead=binaryFileHead,
+                  extendedTextualFileHead=extendedTextualFileHead)
+    for i in eachindex(theader)
+        writetrace(io, theader[i], data[:, i])
+    end
+end
+
 end
