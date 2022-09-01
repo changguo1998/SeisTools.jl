@@ -5,5 +5,5 @@
 deps/deps.jl
 .vscode/
 .gitignore
-.gcbakup
-.gcbaksearchignore
+.gcbackup.toml
+.JuliaFormatter.toml
