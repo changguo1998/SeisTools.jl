@@ -102,7 +102,7 @@ function readhead(io::IO)
         @debug "SAC version: 7"
         foot = zeros(Float64, 22)
         read!(io, foot)
-        for i = 1:length(VERSION_7_FOOT_VAR)
+        for i in eachindex(VERSION_7_FOOT_VAR)
             if foot[i] != -12345.0
                 head[VERSION_7_FOOT_VAR[i]] = foot[i]
             end
@@ -266,7 +266,7 @@ return a Dict filled with sac header variables. Default value is -12345, and use
 function emptyheader(; hdrvars...)
     th = Dict{String,Any}()
     setvars = string.(keys(SPECIAL_DEFAULT_VALUE))
-    for i = 1:length(SAC_HEADER_LIST)
+    for i in eachindex(SAC_HEADER_LIST)
         var = SAC_HEADER_LIST[i]
         if var in setvars
             th[var] = SPECIAL_DEFAULT_VALUE[Symbol(var)]

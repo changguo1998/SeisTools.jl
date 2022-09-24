@@ -25,7 +25,6 @@ macro hadbetter(cond, text = "")
              end)
 end
 
-
 # * modules
 include("SAC.jl")
 include("SEGY.jl")

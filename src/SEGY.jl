@@ -1,4 +1,5 @@
 module SEGY
+import Base.write
 const EBCDIC_TABLE = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
                       27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
                       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 74, 75, 76, 77, 78, 79, 80, 90, 91, 92,
@@ -116,7 +117,7 @@ function readfilehead(io::IO)
             push!(extendedTextualFileHead, s)
         end
     end
-    return (taperlabel=taperLabel, txtfh=textualFileHead, bfh=binaryFileHead, etxtfh=extendedTextualFileHead)
+    return (taperlabel = taperLabel, txtfh = textualFileHead, bfh = binaryFileHead, etxtfh = extendedTextualFileHead)
 end
 
 function readtracehead(io::IO)
@@ -210,7 +211,7 @@ function readtrace(io::IO, fhdr::Dict)
     end
     read!(io, t)
     t = Float64.(ntoh.(t))
-    return (hdr=hdr, data=t)
+    return (hdr = hdr, data = t)
 end
 
 function read(io::IO)
@@ -220,15 +221,15 @@ function read(io::IO)
         t = readtrace(io, fh.bfh)
         push!(traces, t)
     end
-    return (filehead=fh, traces=traces)
+    return (filehead = fh, traces = traces)
 end
 
 function read(p::AbstractString)
     return open(read, p, "r")
 end
 
-function writefilehead(io::IO; taperlabel::String="", textualFileHead::String="",
-                       binaryFileHead::Dict=Dict(), extendedTextualFileHead::Vector{String}=String[])
+function writefilehead(io::IO; taperlabel::String = "", textualFileHead::String = "",
+                       binaryFileHead::Dict = Dict(), extendedTextualFileHead::Vector{String} = String[])
     sbuf = zeros(UInt8, 3200)
     sbuf[1:length(textualFileHead)] .= UInt8.(collect(textualFileHead))
     Base.write(io, sbuf)
@@ -261,21 +262,19 @@ function writetrace(io::IO, theader::Dict, data::Vector{<:Real})
     return nothing
 end
 
-function write(io::IO, textualFileHead::String="", binaryFileHead::Dict=Dict(),
-               extendedTextualFileHead::Vector{String}=String[], theader::Vector{Dict}=Dict[],
-                data::Vector{Vector{<:Real}}=Vector{Float64}[])
-    writefilehead(io; textualFileHead=textualFileHead, binaryFileHead=binaryFileHead,
-                  extendedTextualFileHead=extendedTextualFileHead)
+function write(io::IO, binaryFileHead::Dict, theader::Vector{Dict}, data::Vector{Vector{<:Real}},
+               textualFileHead::String = "", extendedTextualFileHead::Vector{String} = String[])
+    writefilehead(io; textualFileHead = textualFileHead, binaryFileHead = binaryFileHead,
+                  extendedTextualFileHead = extendedTextualFileHead)
     for i in eachindex(theader)
         writetrace(io, theader[i], data[i])
     end
 end
 
-function write(io::IO, textualFileHead::String="", binaryFileHead::Dict=Dict(),
-               extendedTextualFileHead::Vector{String}=String[], theader::Vector{Dict}=Dict[],
-               data::Matrix{<:Real}=zeros(0,0))
-    writefilehead(io; textualFileHead=textualFileHead, binaryFileHead=binaryFileHead,
-                  extendedTextualFileHead=extendedTextualFileHead)
+function write(io::IO, binaryFileHead::Dict, theader::Vector{Dict}, data::Matrix{<:Real},
+               textualFileHead::String = "", extendedTextualFileHead::Vector{String} = String[])
+    writefilehead(io; textualFileHead = textualFileHead, binaryFileHead = binaryFileHead,
+                  extendedTextualFileHead = extendedTextualFileHead)
     for i in eachindex(theader)
         writetrace(io, theader[i], data[:, i])
     end

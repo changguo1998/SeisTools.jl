@@ -1,50 +1,59 @@
 module SSP
-using Statistics, FFTW
 
-export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans
+using Statistics, FFTW, Dates, LinearAlgebra, DSP
+
+import SeisTools:@must, @hadbetter
+
+export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans, cut!, cut, merge
 
 macro linearscale(x, x1, x2, y1, y2)
-    return :( ($(esc(x)) - $(esc(x1))) / ($(esc(x2)) - $(esc(x1))) * ($(esc(y2)) - $(esc(y1))) + $(esc(y1)))
+    return :(($(esc(x)) - $(esc(x1))) / ($(esc(x2)) - $(esc(x1))) * ($(esc(y2)) - $(esc(y1))) + $(esc(y1)))
 end
 
 """
+```
 detrend!(x::AbstractVector; type=:LeastSquare)
+```
 
 Remove the linear content of x. See `detrend` for more information
 """
-function detrend!(x::AbstractVector; type::Symbol = :LeastSquare)
-    @assert (type in (:LeastSquare, :Mean, :SimpleLinear)) "type must be one of :LeastSquare, Mean or SimpleLinear"
-    N = length(x)
+function detrend!(x::AbstractVecOrMat; type::Symbol = :LeastSquare)
+    @must (type in (:LeastSquare, :Mean, :SimpleLinear)) "type must be one of :LeastSquare, Mean or SimpleLinear"
+    N = size(x, 1)
     ZERO = convert(eltype(x), 0.0)
-    if type == :Mean
-        k = ZERO
-        b = mean(x)
-    elseif type == :SimpleLinear
-        k = (x[end] - x[1]) / (N - 1)
-        b = x[1]
-    elseif type == :LeastSquare
-        xm = (N + 1.0) / 2.0
-        x2m = (N + 1.0) * (2.0 * N + 1.0) / 6.0
-        ym = mean(x)
-        xym = ZERO
-        for i = 1:N
-            xym += x[i] * i
+    for col in eachcol(x)
+        if type == :Mean
+            k = ZERO
+            b = mean(col)
+        elseif type == :SimpleLinear
+            k = (col[end] - col[1]) / (N - 1)
+            b = col[1]
+        elseif type == :LeastSquare
+            xm = (N + 1.0) / 2.0
+            x2m = (N + 1.0) * (2.0 * N + 1.0) / 6.0
+            ym = mean(col)
+            xym = ZERO
+            for i = 1:N
+                xym += col[i] * i
+            end
+            xym /= N
+            k = (xm * ym - xym) / (xm^2 - x2m)
+            b = (xm * xym - ym * x2m) / (xm^2 - x2m)
+        else
+            k = ZERO
+            b = ZERO
         end
-        xym /= N
-        k = (xm * ym - xym) / (xm^2 - x2m)
-        b = (xm * xym - ym * x2m) / (xm^2 - x2m)
-    else
-        k = ZERO
-        b = ZERO
-    end
-    for i = 1:N
-        x[i] -= k * i + b
+        for i = 1:N
+            col[i] -= k * i + b
+        end
     end
     return nothing
 end
 
 """
+```
 detrend(x::AbstractVector; type=:LeastSquare)
+```
 
 Remove the linear content of x. The liear type can be
 
@@ -59,14 +68,16 @@ function detrend(x::AbstractVector; type::Symbol = :LeastSquare)
 end
 
 """
+```
 taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+```
 
 see `taper`
 """
 function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
-    @assert ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
-    @assert ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
-    @assert (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
+    @must ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
+    @must ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
+    @must (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
     N = length(x)
     M = round(Int, N * ratio)
     if side == :Head || side == :Both
@@ -82,13 +93,20 @@ function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol
     return nothing
 end
 
+"""
+```
+taper!(x::AbstractVector; ratio::Real=0.05, side::Symbol=:Both)
+```
+"""
 function taper!(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
     taper!(identity, x; ratio = ratio, side = side)
     return nothing
 end
 
 """
+```
 taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+```
 
 Add taper to waveform.
 
@@ -109,28 +127,34 @@ function taper(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
 end
 
 """
+```
 bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+```
 """
 function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @assert fs > 0.0
+    @must fs > 0.0
     ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
 """
+```
 lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+```
 """
 function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @assert fs > 0.0
+    @must fs > 0.0
     ftr = digitalfilter(Lowpass(w; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
 """
+```
 highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+```
 """
 function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @assert fs > 0.0
+    @must fs > 0.0
     ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
     return filtfilt(ftr, x)
 end
@@ -149,7 +173,9 @@ function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
 end
 
 """
+```
 trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
+```
 
 add or remove response. the response is applied in zpk form
 """
@@ -181,11 +207,108 @@ function trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
         end
     end
     Y[m+1] = 0.0
-    if rmax > 1e5
-        @warn "Waveform in some frequency is scaled larger than 1e5"
-    end
+    # if rmax > 1e5
+    #     @warn "Waveform in some frequency is scaled larger than 1e5"
+    # end
     ifft!(Y)
     y = real.(Y)
     return y
 end
+
+"""
+```
+cut!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real}, startx::Integer, starty::Integer, len::Integer)
+```
+
+copy rows start at `startx` to y. if x is too short, stop at the end of x, else stop when copied `len` row
+"""
+function cut!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real}, startx::Integer, starty::Integer, len::Integer)
+    Lx = size(x, 1)
+    Ly = size(y, 1)
+    L = min(Lx - startx + 1, len, Ly - starty + 1)
+    for col in axes(y, 2)
+        for row = 1:L
+            y[row+starty-1, col] = x[row+startx-1, col]
+        end
+    end
+    return nothing
 end
+
+"""
+```
+cut(x::AbstractVecOrMat{<:Real}, startx::Integer, len::Integer; fillval=0.0) -> VecOrMat
+```
+
+cut `len` rows from x while start at `startx` row
+"""
+function cut(x::AbstractVecOrMat{<:Real}, startx::Integer, len::Integer; fillval = 0.0)
+    if typeof(x) <: AbstractVector
+        y = fill(fillval, len)
+    else
+        y = fill(fillval, len, size(x, 2))
+    end
+    if startx < 1
+        if len - 1 + startx < 1
+            return y
+        end
+        cut!(y, x, 1, 2 - startx, len - 1 + startx)
+    else
+        cut!(y, x, startx, 1, len)
+    end
+    return y
+end
+
+"""
+```
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+```
+
+cut rows from x, start from time `start` with time length `len`
+"""
+function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond;
+             fillval = 0.0)
+    npts = round(Int, Millisecond(len) / dt)
+    xstart = round(Int, Millisecond(start - xbegin) / dt) + 1
+    y = cut(x, xstart, npts; fillval = fillval)
+    return (xbegin + (xstart - 1) * dt, y, dt)
+end
+
+"""
+```
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+```
+
+cut rows from x, start from time `start` to time `stop`
+"""
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond;
+fillval = 0.0) = cut(x, xbegin, start, stop - start, dt; fillval = fillval)
+
+"""
+```
+merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+```
+
+merge each element in x into one VecOrMat y, the latter element in x will overwrite data from the former element when
+there are overlapes
+"""
+function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval = 0.0)
+    xstops = map(i -> xbegins[i] + dt * size(x[i], 1), eachindex(x))
+    ybegin = minimum(xbegins)
+    ystop = maximum(xstops)
+    len = round(Int, Millisecond(ystop - ybegin) / dt)
+    if typeof(x[1]) <: AbstractVector
+        y = fill(fillval, len)
+    else
+        y = fill(fillval, len, size(x[1], 2))
+    end
+    for i in eachindex(x)
+        shift = round(Int, (xbegins[i] - ybegin) / dt) + 1
+        cut!(y, x[i], 1, shift, size(x[i], 1))
+    end
+    return (ybegin, y, dt)
+end
+
+end # module

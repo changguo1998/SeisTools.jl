@@ -5,7 +5,7 @@ export ricker
 function _linearscale!(x::AbstractVector{<:AbstractFloat}, vmin::Real = 0.0, vmax::Real = 1.0)
     v0 = minimum(x)
     k0 = (vmax - vmin) / (maximum(x) - v0)
-    for i = 1:length(x)
+    for i in eachindex(x)
         x[i] = k0 * (x[i] - v0) + vmin
     end
     return nothing
