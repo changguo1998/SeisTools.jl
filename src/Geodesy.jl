@@ -2,6 +2,8 @@ module Geodesy
 
 using LinearAlgebra, Statistics
 
+include("macros.jl")
+
 abstract type Point <: Any end
 
 struct LatLon <: Point

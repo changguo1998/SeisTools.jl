@@ -1,15 +1,10 @@
 module CommonFunction
 
-export ricker
+using SpecialFunctions, SpecialPolynomials
 
-function _linearscale!(x::AbstractVector{<:AbstractFloat}, vmin::Real = 0.0, vmax::Real = 1.0)
-    v0 = minimum(x)
-    k0 = (vmax - vmin) / (maximum(x) - v0)
-    for i in eachindex(x)
-        x[i] = k0 * (x[i] - v0) + vmin
-    end
-    return nothing
-end
+include("macros.jl")
+
+export ricker
 
 """
     ricker(t::Real, f0::Real)
@@ -47,18 +42,12 @@ end
 """
 function smoothramp(f::Complex, thalf::Real) end
 
-function cosinewindow!(x::AbstractVector)
-    lx = length(x)
-    for i = 1:lx
-        x[i] = 0.5 * (1.0 - cos(π * (i - 1) / (lx - 1)))
-    end
-    return nothing
+function cosinewindow(x::Real)
+    return (1.0 - cospi(x))/2.0
 end
 
-function cosinewindow(n::Integer)
-    x = zeros(n)
-    cosinewindow!(x)
-    return x
+function hanning(x::Real)
+    return (1.0 + cospi(x))/2.0
 end
 
 end

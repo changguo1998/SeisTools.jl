@@ -1,14 +1,10 @@
-module SSP
+module DataProcess
 
-using Statistics, FFTW, Dates, LinearAlgebra
-
-import SeisTools: @must, @hadbetter
+using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
 export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans, cut!, cut, merge
 
-macro linearscale(x, x1, x2, y1, y2)
-    return :(($(esc(x)) - $(esc(x1))) / ($(esc(x2)) - $(esc(x1))) * ($(esc(y2)) - $(esc(y1))) + $(esc(y1)))
-end
+include("macros.jl")
 
 """
 ```
