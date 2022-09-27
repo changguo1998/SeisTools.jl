@@ -96,7 +96,7 @@ end
 
 function print(io::IO, x::Dict{String,Any})
     Printf.@printf(io, "* **********************************\n")
-    for ih = 1:length(HEAD)
+    for ih in eachindex(HEAD)
         h = HEAD[ih]
         fmt = FMT[ih]
         if h ∈ keys(x)

@@ -43,11 +43,11 @@ end
 function smoothramp(f::Complex, thalf::Real) end
 
 function cosinewindow(x::Real)
-    return (1.0 - cospi(x))/2.0
+    return (1.0 - cospi(x)) / 2.0
 end
 
 function hanning(x::Real)
-    return (1.0 + cospi(x))/2.0
+    return (1.0 + cospi(x)) / 2.0
 end
 
 end

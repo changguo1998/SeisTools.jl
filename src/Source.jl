@@ -141,9 +141,9 @@ function decompose(m::MomentTensor)
     Miso = P * diagm([iso, iso, iso]) * PT
     Mdc = P * diagm([s1, s2, s3]) * PT
     Mclvd = P * diagm([c1, c2, c3]) * PT
-    return (iso=MomentTensor((Miso + permutedims(Miso)) ./ 2),
-            dc=MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
-            clvd=MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
+    return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
+            dc = MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
+            clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
 end
 
 function _linetrace(n::Vector{Float64}, theta::AbstractVector{Float64})
@@ -170,7 +170,7 @@ beachball_sdrline(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bool=true) 
 
 xy? is `Vector{Tuple{Float64,Float64}}` like `[(1.0, 2.0), (2.0, 3.0)]`
 """
-function beachball_sdrline(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bool=true)
+function beachball_sdrline(m::MomentTensor, dtheta::Real = 1.0; innerdecompose::Bool = true)
     dm = innerdecompose ? decompose(m).dc : m
     M = [dm.values[1] dm.values[4] dm.values[5];
          dm.values[4] dm.values[2] dm.values[6];
@@ -180,13 +180,13 @@ function beachball_sdrline(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bo
     T = V[:, 3]
     n1 = normalize(P + T)
     n2 = normalize(P - T)
-    theta = range(; start=0.0, stop=180.0, step=dtheta)
+    theta = range(; start = 0.0, stop = 180.0, step = dtheta)
     trace1 = _linetrace(n1, theta)
     trace2 = _linetrace(n2, theta)
     l1 = _projectcoor(trace1)
     l2 = _projectcoor(trace2)
-    return (l1=l1, l2=l2,
-            edge=map(v -> (cosd(v), sind(v)), range(; start=0.0, stop=360.0, step=dtheta)))
+    return (l1 = l1, l2 = l2,
+            edge = map(v -> (cosd(v), sind(v)), range(; start = 0.0, stop = 360.0, step = dtheta)))
 end
 
 """
@@ -196,7 +196,7 @@ function beachball_bitmap(m::MomentTensor; resolution=(201,201)) -> Matrix
 
 get a map of values to plot `MomentTensor`. the first dimension of `Matrix` is north, and the second is east
 """
-function beachball_bitmap(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer}=(201, 201))
+function beachball_bitmap(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer} = (201, 201))
     M = [m.values[1] m.values[4] m.values[5];
          m.values[4] m.values[2] m.values[6];
          m.values[5] m.values[6] m.values[3]]
