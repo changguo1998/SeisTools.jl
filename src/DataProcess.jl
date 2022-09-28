@@ -380,9 +380,9 @@ cut `len` rows from x while start at `startx` row
 """
 function cut(x::AbstractVecOrMat{<:Real}, startx::Integer, len::Integer; fillval = 0.0)
     if typeof(x) <: AbstractVector
-        y = fill(convert(promote_type(eltype(x), eltype(y)), fillval), len)
+        y = fill(convert(eltype(x), fillval), len)
     else
-        y = fill(convert(promote_type(eltype(x), eltype(y)), fillval), len, size(x, 2))
+        y = fill(convert(eltype(x), fillval), len, size(x, 2))
     end
     if startx < 1
         if len - 1 + startx < 1
