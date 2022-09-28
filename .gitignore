@@ -1,7 +1,9 @@
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
+*.bak.jl
 deps/deps.jl
 .vscode/
 .gitignore
 .gcbackup.toml
+.JuliaFormatter.toml
