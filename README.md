@@ -1,4 +1,5 @@
 # SeisTools
 
-## 介绍
-seismic  process tools based on Julia
+## Introduction
+
+Functions for seismic data processing
