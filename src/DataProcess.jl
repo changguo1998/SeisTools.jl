@@ -354,6 +354,50 @@ end
 
 """
 ```
+resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
+```
+"""
+function resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
+    @must size(y, 2) == size(x, 2) "column of x and y must be equal"
+    X = zeros(Complex{eltype(x)}, size(x))
+    Y = zeros(Complex{eltype(x)}, size(y))
+    Ly = size(Y, 2)
+    X .= x
+    for col in eachcol(X)
+        fft!(col)
+    end
+    Y[1, :] .= X[1, :]
+    for col in axes(y, 2), row = 2:floor(Int, Ly / 2)
+        Y[row, col] = X[row, col]
+        Y[Ly-row+2, col] = conj(X[row, col])
+    end
+    for col in eachcol(Y)
+        ifft!(col)
+    end
+    y .= real.(Y)
+    return nothing
+end
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, N::Integer) -> VecOrMat
+```
+"""
+function resample(x::AbstractVecOrMat{<:Real}, N::Integer)
+    y = zeros(eltype(x), N, size(x, 2))
+    resample!(y, x)
+    return y
+end
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) -> VecOrMat
+```
+"""
+resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) = resample(x, round(Int, size(x, 1) * xdt / ydt))
+
+"""
+```
 cut!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real}, startx::Integer, starty::Integer, len::Integer)
 ```
 
