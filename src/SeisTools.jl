@@ -7,5 +7,6 @@ include("DataProcess.jl")
 include("SACPZ.jl")
 include("Source.jl")
 include("Geodesy.jl")
+include("QualityControl.jl")
 
 end # module
