@@ -4,12 +4,12 @@ using Dates, Statistics
 
 """
 ```
-norecord(x::AbstractVector, window::Integer) -> Bool
+constrecord(x::AbstractVector, window::Integer) -> Bool
 ```
 
 return true if there is constant value in waveform
 """
-function norecord(x::AbstractVector, window::Integer)
+function constrecord(x::AbstractVector, window::Integer)
     flag = falses(length(x)-1)
     for i = 1:length(x)-1
         flag[i] = x[i] == x[i+1]
@@ -30,12 +30,12 @@ end
 
 """
 ```
-norecord(x::AbstractVector, dt::Period, window::Period) -> Bool
+constrecord(x::AbstractVector, dt::Period, window::Period) -> Bool
 ```
 
 return true if there is constant value in waveform
 """
-norecord(x::AbstractVector, dt::Period, window::Period) = norecord(x, round(Int, Millisecond(window)/Millisecond(dt)))
+constrecord(x::AbstractVector, dt::Period, window::Period) = constrecord(x, round(Int, Millisecond(window)/Millisecond(dt)))
 
 function kurtosis(x::AbstractVector)
     mx = mean(x)
