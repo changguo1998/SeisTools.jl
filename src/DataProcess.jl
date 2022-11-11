@@ -361,7 +361,7 @@ function resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
     @must size(y, 2) == size(x, 2) "column of x and y must be equal"
     X = zeros(Complex{eltype(x)}, size(x))
     Y = zeros(Complex{eltype(x)}, size(y))
-    Ly = size(Y, 2)
+    Ly = size(Y, 1)
     X .= x
     for col in eachcol(X)
         fft!(col)
@@ -384,10 +384,20 @@ resample(x::AbstractVecOrMat{<:Real}, N::Integer) -> VecOrMat
 ```
 """
 function resample(x::AbstractVecOrMat{<:Real}, N::Integer)
-    y = zeros(eltype(x), N, size(x, 2))
+    s = collect(size(x))
+    s[1] = N
+    y = zeros(eltype(x), Tuple(s))
     resample!(y, x)
     return y
 end
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, ratio::Real) -> VecOrMat
+```
+"""
+resample(x::AbstractVecOrMat{<:Real}, ratio::Real) = resample(x, round(Int, size(x, 1)*ratio))
+
 
 """
 ```

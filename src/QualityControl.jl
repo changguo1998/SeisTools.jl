@@ -2,6 +2,23 @@ module QualityControl
 
 using Dates, Statistics
 
+function maxconst(x::AbstractVector)
+    flag = falses(length(x)-1)
+    Threads.@threads for i = 1:length(x)-1
+        flag[i] = x[i] == x[i+1]
+    end
+    nconst = zeros(Int, length(x))
+    nconst[1] = 0
+    for i = 2:length(x)
+        if flag[i-1]
+            nconst[i] = nconst[i-1] + 1
+        else
+            nconst[i] = 0
+        end
+    end
+    return nconst
+end
+
 """
 ```
 constrecord(x::AbstractVector, window::Integer) -> Bool
@@ -9,23 +26,9 @@ constrecord(x::AbstractVector, window::Integer) -> Bool
 
 return true if there is constant value in waveform
 """
-function constrecord(x::AbstractVector, window::Integer)
-    flag = falses(length(x)-1)
-    for i = 1:length(x)-1
-        flag[i] = x[i] == x[i+1]
-    end
-    fr = false
-    for i = 1:length(flag)-window+2
-        ft = true
-        for j = 1:window-1
-            ft &= flag[i+j-1]
-        end
-        fr |= ft
-        if fr
-            break
-        end
-    end
-    return fr
+function hasconstrecord(x::AbstractVector, window::Integer)
+    nc = maxconst(x)
+    return maximum(nc) >= window - 1
 end
 
 """
@@ -35,7 +38,7 @@ constrecord(x::AbstractVector, dt::Period, window::Period) -> Bool
 
 return true if there is constant value in waveform
 """
-constrecord(x::AbstractVector, dt::Period, window::Period) = constrecord(x, round(Int, Millisecond(window)/Millisecond(dt)))
+hasconstrecord(x::AbstractVector, dt::Period, window::Period) = hasconstrecord(x, round(Int, Millisecond(window)/Millisecond(dt)))
 
 function kurtosis(x::AbstractVector)
     mx = mean(x)
