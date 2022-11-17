@@ -124,34 +124,34 @@ end
 
 """
 ```
-bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
+function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Bandpass(w1, w2; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
 """
 ```
-lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+lowpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Lowpass(w; fs = fs), Butterworth(n))
+function lowpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Lowpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
 """
 ```
-highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+highpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
+function highpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Highpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
@@ -361,13 +361,14 @@ function resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
     @must size(y, 2) == size(x, 2) "column of x and y must be equal"
     X = zeros(Complex{eltype(x)}, size(x))
     Y = zeros(Complex{eltype(x)}, size(y))
+    Lx = size(X, 1)
     Ly = size(Y, 1)
     X .= x
     for col in eachcol(X)
         fft!(col)
     end
     Y[1, :] .= X[1, :]
-    for col in axes(y, 2), row = 2:floor(Int, Ly / 2)
+    for col in axes(y, 2), row = 2:floor(Int, min(Lx, Ly) / 2)
         Y[row, col] = X[row, col]
         Y[Ly-row+2, col] = conj(X[row, col])
     end
