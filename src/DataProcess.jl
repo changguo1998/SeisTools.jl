@@ -8,7 +8,7 @@ include("macros.jl")
 
 """
 ```
-detrend!(x::AbstractVector; type=:LeastSquare)
+detrend!(x::AbstractVecOrMat; type=:LeastSquare)
 ```
 
 Remove the linear content of x. See `detrend` for more information
@@ -48,7 +48,7 @@ end
 
 """
 ```
-detrend(x::AbstractVector; type=:LeastSquare)
+detrend(x::AbstractVecOrMat; type=:LeastSquare)
 ```
 
 Remove the linear content of x. The liear type can be
@@ -57,7 +57,7 @@ Remove the linear content of x. The liear type can be
   - `:Mean` using mean of x
   - `:SimpleLinear` using the first and last sample to get linear content
 """
-function detrend(x::AbstractVector; type::Symbol = :LeastSquare)
+function detrend(x::AbstractVecOrMat; type::Symbol = :LeastSquare)
     y = deepcopy(x)
     detrend!(y; type = type)
     return y
@@ -65,25 +65,27 @@ end
 
 """
 ```
-taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+taper!(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
 ```
 
 see `taper`
 """
-function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper!(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     @must ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
     @must ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
     @must (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
-    N = length(x)
+    N = size(x, 1)
     M = round(Int, N * ratio)
-    if side == :Head || side == :Both
-        for i = 1:M
-            x[i] *= f((i - 1) / (M - 1))
+    for xc in eachcol(x)
+        if (side == :Head) || (side == :Both)
+            for i = 1:M
+                xc[i] *= f((i - 1) / (M - 1))
+            end
         end
-    end
-    if side == :Tail || side == :Both
-        for i = 1:M
-            x[N-i+1] *= f((i - 1) / (M - 1))
+        if (side == :Tail) || (side == :Both)
+            for i = 1:M
+                xc[N-i+1] *= f((i - 1) / (M - 1))
+            end
         end
     end
     return nothing
@@ -91,17 +93,17 @@ end
 
 """
 ```
-taper!(x::AbstractVector; ratio::Real=0.05, side::Symbol=:Both)
+taper!(x::AbstractVecOrMat; ratio::Real=0.05, side::Symbol=:Both)
 ```
 """
-function taper!(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper!(x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     taper!(identity, x; ratio = ratio, side = side)
     return nothing
 end
 
 """
 ```
-taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+taper(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
 ```
 
 Add taper to waveform.
@@ -110,13 +112,13 @@ Add taper to waveform.
   - `ratio` is window length, between 0 - 0.5
   - `side` should be one of `:Both`, `:Head` or `Tail`
 """
-function taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
     taper!(f, y; ratio = ratio, side = side)
     return y
 end
 
-function taper(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper(x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
     taper!(identity, y; ratio = ratio, side = side)
     return y
@@ -124,21 +126,41 @@ end
 
 """
 ```
-bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+function bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
     ftr = digitalfilter(Bandpass(w1, w2; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
+function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fs::Real = 1.0)
+    y = deepcopy(x)
+    L = size(x, 1)
+    df = fs / L
+    for ix in axes(x, 2)
+        X = fft(x[:, ix])
+        Y = zeros(eltype(X), length(X))
+        for i = 1:round(Int, L / 2)
+            f = (i - 1) * df
+            if (f >= w1) && (f <= w2)
+                Y[i] = X[i]
+                Y[L-i+1] = conj(X[i])
+            end
+        end
+        ifft!(Y)
+        y[:, ix] .= real.(Y)
+    end
+    return y
+end
+
 """
 ```
-lowpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function lowpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+function lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
     ftr = digitalfilter(Lowpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
@@ -146,10 +168,10 @@ end
 
 """
 ```
-highpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function highpass(x::AbstractVector, w::AbstractFloat, fsample::Real = 0.0; n::Int = 4)
+function highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
     ftr = digitalfilter(Highpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
@@ -375,7 +397,7 @@ function resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
     for col in eachcol(Y)
         ifft!(col)
     end
-    y .= real.(Y)
+    y .= real.(Y) .* (Ly / Lx)
     return nothing
 end
 
@@ -397,8 +419,7 @@ end
 resample(x::AbstractVecOrMat{<:Real}, ratio::Real) -> VecOrMat
 ```
 """
-resample(x::AbstractVecOrMat{<:Real}, ratio::Real) = resample(x, round(Int, size(x, 1)*ratio))
-
+resample(x::AbstractVecOrMat{<:Real}, ratio::Real) = resample(x, round(Int, size(x, 1) * ratio))
 
 """
 ```

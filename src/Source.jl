@@ -5,7 +5,7 @@ import Base: show, isequal
 
 include("macros.jl")
 
-export MomentTensor, show, isequal, decompose, beachball_bitmap, beachball_sdrline
+export MomentTensor, show, isequal, decompose, focalmechanism, beachball_bitmap, beachball_sdrline
 
 """
     ```
@@ -52,19 +52,19 @@ end
 
 """
 ```
-MomentTensor(strike::Real, dip::Real, rake::Real) -> MomentTensor
+MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real=1.0) -> MomentTensor
 ```
 
 using focal mechanism format to create MomentTensor
 """
-function MomentTensor(strike::Real, dip::Real, rake::Real)
+function MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real = 1.0)
     m = zeros(6)
-    m[1] = -1 * (sind(2 * strike) * sind(dip) * cosd(rake) + (sind(strike))^2 * sind(2 * dip) * sind(rake))
-    m[2] = sind(2 * strike) * sind(dip) * cosd(rake) - (cosd(strike))^2 * sind(2 * dip) * sind(rake)
-    m[3] = sind(2 * dip) * sind(rake)
-    m[4] = cosd(2 * strike) * sind(dip) * cosd(rake) + 0.5 * sind(2 * strike) * sind(2 * dip) * sind(rake)
-    m[5] = -1 * (cosd(strike) * cosd(dip) * cosd(rake) + sind(strike) * cosd(2 * dip) * sind(rake))
-    m[6] = -1 * (sind(strike) * cosd(dip) * cosd(rake) - cosd(strike) * cosd(2 * dip) * sind(rake))
+    m[1] = -scale * (sind(2 * strike) * sind(dip) * cosd(rake) + (sind(strike))^2 * sind(2 * dip) * sind(rake))
+    m[2] = scale * (sind(2 * strike) * sind(dip) * cosd(rake) - (cosd(strike))^2 * sind(2 * dip) * sind(rake))
+    m[3] = scale * sind(2 * dip) * sind(rake)
+    m[4] = scale * (cosd(2 * strike) * sind(dip) * cosd(rake) + 0.5 * sind(2 * strike) * sind(2 * dip) * sind(rake))
+    m[5] = -scale * (cosd(strike) * cosd(dip) * cosd(rake) + sind(strike) * cosd(2 * dip) * sind(rake))
+    m[6] = -scale * (sind(strike) * cosd(dip) * cosd(rake) - cosd(strike) * cosd(2 * dip) * sind(rake))
     return MomentTensor(m)
 end
 
@@ -144,6 +144,40 @@ function decompose(m::MomentTensor)
     return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
             dc = MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
             clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
+end
+
+function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVector{<:Real})
+    factor = planenorm[3] > 0.0 ? -1.0 : 1.0
+    n1 = planenorm .* factor
+    n2 = slipdirec .* factor
+    strike = mod(atand(n1[2], n1[1]) - 90.0, 360.0)
+    dip = 180.0 - acosd(n1[3])
+    refA = [cosd(strike), sind(strike), 0.0]
+    refB = cross(n1, refA)
+    rake = atand(dot(n2, refB), dot(n2, refA))
+    return (strike, dip, rake)
+end
+
+@doc raw"""
+```
+focalmechanism(m::MomentTensor; digits::Integer = 0) -> (plane1=(strike1, dip1, rake1), plane2=(strike2, dip2, rake2))
+```
+
+calculate focal mechanism expression of `MomentTensor` m's double-couple component
+"""
+function focalmechanism(m::MomentTensor; digits::Integer = 0)
+    M = [m.values[1] m.values[4] m.values[5];
+         m.values[4] m.values[2] m.values[6];
+         m.values[5] m.values[6] m.values[3]]
+    (v, P) = eigen(M)
+    Paxis = P[:, 1]
+    # Baxis = P[:, 2]
+    Taxis = P[:, 3]
+    n1 = normalize(Paxis + Taxis)
+    n1 .*= n1[3] > 0.0 ? -1.0 : 1.0
+    n2 = normalize(M * n1)
+    return (plane1 = round.(_normvec2sdr(n1, n2), digits = digits),
+            plane2 = round.(_normvec2sdr(n2, n1), digits = digits))
 end
 
 function _linetrace(n::Vector{Float64}, theta::AbstractVector{Float64})
