@@ -1,7 +1,7 @@
 module Source
 
 using LinearAlgebra, Statistics
-import Base: show, isequal
+import Base: show, isequal, +, -, Matrix
 
 include("macros.jl")
 
@@ -50,6 +50,26 @@ function MomentTensor(x::AbstractMatrix{<:Real})
     return MomentTensor(x[1, 1], x[2, 2], x[3, 3], x[1, 2], x[1, 3], x[2, 3])
 end
 
+function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVector{<:Real})
+    factor = planenorm[3] > 0.0 ? -1.0 : 1.0
+    n1 = planenorm .* factor
+    n2 = slipdirec .* factor
+    strike = mod(atand(n1[2], n1[1]) - 90.0, 360.0)
+    dip = 180.0 - acosd(n1[3])
+    refA = [cosd(strike), sind(strike), 0.0]
+    refB = cross(n1, refA)
+    rake = atand(dot(n2, refB), dot(n2, refA))
+    return (strike, dip, rake)
+end
+
+function _sdr2normvec(strike::Real, dip::Real, rake::Real)
+    n1 = [-sind(strike)*sind(dip), cosd(strike) * sind(dip), -cosd(dip)]
+    refA = [cosd(strike), sind(strike), 0.0]
+    refB = normalize(cross(n1, refA))
+    n2 = normalize(refA .* cosd(rake) + refB .* sind(rake))
+    return (n1, n2)
+end
+
 """
 ```
 MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real=1.0) -> MomentTensor
@@ -66,17 +86,31 @@ function MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real = 1.0)
     m[5] = -scale * (cosd(strike) * cosd(dip) * cosd(rake) + sind(strike) * cosd(2 * dip) * sind(rake))
     m[6] = -scale * (sind(strike) * cosd(dip) * cosd(rake) - cosd(strike) * cosd(2 * dip) * sind(rake))
     return MomentTensor(m)
+    # (n1, n2) = _sdr2normvec(strike, dip, rake)
+    # M = n2 * permutedims(n1) + n1 * permutedims(n2)
+    # return MomentTensor(M)
+end
+
+function Matrix(m::MomentTensor)
+    return [m.values[1] m.values[4] m.values[5];
+         m.values[4] m.values[2] m.values[6];
+         m.values[5] m.values[6] m.values[3]]
 end
 
 function show(io::IO, m::MomentTensor)
-    M = [m.values[1] m.values[4] m.values[5];
-         m.values[4] m.values[2] m.values[6];
-         m.values[5] m.values[6] m.values[3]]
-    show(io, M)
+    show(io, Matrix(m))
 end
 
 function isequal(m1::MomentTensor, m2::MomentTensor)
     return all(map(isequal, m1.values, m2.values))
+end
+
+for sym in (:(+), :(-))
+    @eval begin
+        function $(sym)(m1::MomentTensor, m2::MomentTensor)
+            return MomentTensor(m1.values .+ m2.values)
+        end
+    end
 end
 
 @doc raw"""
@@ -126,10 +160,7 @@ dc = \left(\begin{pmatrix}
 This decomposation keep that ``F(M)^2 = F(Miso)^2 + F(Mclvd)^2 + F(Mdc)^2``
 """
 function decompose(m::MomentTensor)
-    M = [m.values[1] m.values[4] m.values[5];
-         m.values[4] m.values[2] m.values[6];
-         m.values[5] m.values[6] m.values[3]]
-    (v, P) = eigen(M)
+    (v, P) = eigen(Matrix(m))
     PT = permutedims(P)
     iso = mean(v)
     c2 = (2 * v[2] - v[1] - v[3]) / 3.0
@@ -144,18 +175,6 @@ function decompose(m::MomentTensor)
     return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
             dc = MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
             clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
-end
-
-function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVector{<:Real})
-    factor = planenorm[3] > 0.0 ? -1.0 : 1.0
-    n1 = planenorm .* factor
-    n2 = slipdirec .* factor
-    strike = mod(atand(n1[2], n1[1]) - 90.0, 360.0)
-    dip = 180.0 - acosd(n1[3])
-    refA = [cosd(strike), sind(strike), 0.0]
-    refB = cross(n1, refA)
-    rake = atand(dot(n2, refB), dot(n2, refA))
-    return (strike, dip, rake)
 end
 
 @doc raw"""
