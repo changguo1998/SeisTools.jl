@@ -2,7 +2,8 @@ module DataProcess
 
 using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
-export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans, cut!, cut, merge
+export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, 
+    resample!, resample, ZPK, trans, cut!, cut, merge
 
 include("macros.jl")
 
@@ -129,31 +130,31 @@ end
 bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
+function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
     ftr = digitalfilter(Bandpass(w1, w2; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
-function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fs::Real = 1.0)
-    y = deepcopy(x)
-    L = size(x, 1)
-    df = fs / L
-    for ix in axes(x, 2)
-        X = fft(x[:, ix])
-        Y = zeros(eltype(X), length(X))
-        for i = 1:round(Int, L / 2)
-            f = (i - 1) * df
-            if (f >= w1) && (f <= w2)
-                Y[i] = X[i]
-                Y[L-i+1] = conj(X[i])
-            end
-        end
-        ifft!(Y)
-        y[:, ix] .= real.(Y)
-    end
-    return y
-end
+# function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fs::Real = 1.0)
+#     y = deepcopy(x)
+#     L = size(x, 1)
+#     df = fs / L
+#     for ix in axes(x, 2)
+#         X = fft(x[:, ix])
+#         Y = zeros(eltype(X), length(X))
+#         for i = 1:round(Int, L / 2)
+#             f = (i - 1) * df
+#             if (f >= w1) && (f <= w2)
+#                 Y[i] = X[i]
+#                 Y[L-i+1] = conj(X[i])
+#             end
+#         end
+#         ifft!(Y)
+#         y[:, ix] .= real.(Y)
+#     end
+#     return y
+# end
 
 """
 ```
