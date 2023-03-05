@@ -124,7 +124,7 @@ F(M) = \sqrt{\sum_{i=1,3}\sum_{j=1,3}m_{ij}^2}
 ```
 """
 function Fnorm(m::MomentTensor)
-    return sum(abs2, m.values) + sum(abs2, m.values[4:end])
+    return sqrt(sum(abs2, m.values) + sum(abs2, m.values[4:end]))
 end
 
 @doc raw"""
