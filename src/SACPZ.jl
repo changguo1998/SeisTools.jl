@@ -16,6 +16,12 @@ FMT = ("* NETWORK   (KNETWK): %s\n", "* STATION    (KSTNM): %s\n", "* LOCATION  
        "* OUTPUT UNIT       : %s\n", "* INSTTYPE          : %s\n", "* INSTGAIN          : %.6e %s\n",
        "* COMMENT           : %s\n", "* SENSITIVITY       : %.6e %s\n", "* A0                : %.6e\n")
 
+function _parse_date_time(s::AbstractString)
+    x = baseparse.(Int, split(s, ['-', 'T', ':']))
+    d = DateTime(x[1], x[2], x[3]) + Hour(x[4]) + Minute(x[5]) + Second(x[6])
+    return d
+end
+
 function parse_one_station(lines::Vector{T}) where {T<:AbstractString}
     d = Dict{String,Any}()
     # header
@@ -28,7 +34,7 @@ function parse_one_station(lines::Vector{T}) where {T<:AbstractString}
                     "COMMENT") # string
                     d[h] = String(strip(l[idx+1:end]))
                 elseif h in ("CREATED", "START", "END") # datetime
-                    d[h] = DateTime(strip(l[idx+1:end]))
+                    d[h] = _parse_date_time(strip(l[idx+1:end]))
                 elseif h in ("LATITUDE", "LONGITUDE", "ELEVATION", "DEPTH", "DIP", "AZIMUTH", "SAMPLE_RATE", "A0") # float
                     d[h] = baseparse(Float64, strip(l[idx+1:end]))
                 elseif h in ("INSTGAIN", "SENSITIVITY")

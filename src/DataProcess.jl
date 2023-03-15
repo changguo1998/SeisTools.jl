@@ -191,6 +191,10 @@ function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
     return ZPK(ComplexF64.(z), ComplexF64.(p), Float64(k))
 end
 
+const DISPLACEMENT = ZPK()
+const VELOCITY = ZPK([0.0])
+const ACCELERATION = ZPK([0.0, 0.0])
+
 """
 ```
 trans(x::AbstractVector, from::ZPK, to::ZPK, fs::Real)
@@ -373,6 +377,19 @@ function xcorr_t(x::AbstractVecOrMat{<:Real}, y::AbstractVecOrMat{<:Real}, shift
     z = zeros(promote_type(eltype(x), eltype(y)), shiftend - shiftstart + 1, size(x, 2), size(y, 2))
     xcorr_t!(z, x, y, shiftstart)
     return (lag = range(shiftstart; step = 1, length = shiftend - shiftstart + 1), c = z)
+end
+
+"""
+```
+freqspec(x::AbstractVecOrMat{<:Real}, dt::Real) -> (f, Amplitude, Phase)
+```
+"""
+function freqspec(x::AbstractVecOrMat{<:Real}, dt::Real)
+    f = range(0.0, 1.0, length=size(x, 1))./dt
+    X = fft(x)
+    A = abs.(X)
+    p = angle.(X)
+    return (f, A, p)
 end
 
 """
