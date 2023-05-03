@@ -76,7 +76,18 @@ function taper!(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symb
     @must ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
     @must (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
     N = size(x, 1)
-    M = round(Int, N * ratio)
+    M = max(1, round(Int, N * ratio))
+    if M == 1
+        for xc in eachcol(x)
+            if (side == :Head) || (side == :Both)
+                xc[1] *= 0.0
+            end
+            if (side == :Tail) || (side == :Both)
+                xc[end] *= 0.0
+            end
+        end
+        return nothing
+    end
     for xc in eachcol(x)
         if (side == :Head) || (side == :Both)
             for i = 1:M

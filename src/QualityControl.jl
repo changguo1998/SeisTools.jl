@@ -2,6 +2,31 @@ module QualityControl
 
 using Dates, Statistics
 
+
+function _emperical_pdf(x::AbstractVector, n::Integer)
+    xr = float(x) .- mean(float(x))
+    x0 = maximum(abs, xr)
+    N = length(xr)
+    _x = (-n:n) ./ n
+    dhx = 0.5 / n
+    y = zeros(length(_x))
+    for i = eachindex(y)
+        y[i] = count(_tx -> ((_x[i]-dhx) * x0 < _tx) && (_tx <= (_x[i]+dhx) * x0), xr) * n / N
+    end
+    return (_x, y)
+end
+
+_b(x, s) = exp(-((x-1)/s)^2/2) + exp(-((x+1)/s)^2/2)
+
+_w(x, s) = (_b(x, s) - _b(0, s)) / (_b(1, s) - _b(0, s))
+
+function islimitedamplitude(w::AbstractVector, n::Integer)
+    (x, y) = _emperical_pdf(w, 50)
+    J = @. _w(x, 0.3) * y
+    return maximum(J) >= n / length(w) / (x[2] - x[1])
+end
+
+
 function maxapproxconst(x::AbstractVector)
     flag = falses(length(x) - 1)
     Threads.@threads for i = 1:length(x)-1
