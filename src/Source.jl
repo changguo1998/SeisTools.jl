@@ -129,6 +129,18 @@ end
 
 @doc raw"""
 ```
+M0(m::MomentTensor)
+```
+
+return `M0` of `MomentTensor`
+```math
+F(M) = \frac{1}{\sqrt{2}}\sqrt{\sum_{i=1,3}\sum_{j=1,3}m_{ij}^2}
+```
+"""
+M0(m::MomentTensor) = Fnorm(m)/sqrt(2)
+
+@doc raw"""
+```
 decompose(m::MomentTensor) -> (iso=MomentTensor, dc=MomentTensor, clvd=MomentTensor)
 ```
 
