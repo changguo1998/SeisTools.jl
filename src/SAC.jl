@@ -291,7 +291,7 @@ function emptyheader(; hdrvars...)
 end
 
 """
-standardname(frame::WaveFrame; standard::AbstractString = "iris",
+standardname(frame::Dict; standard::AbstractString = "iris",
 quality::AbstractString = "D", kwargs...)
 """
 function standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
