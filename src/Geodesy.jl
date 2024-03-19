@@ -29,7 +29,7 @@ end
 
 EarthSphere = ReferenceSphere("m", 6371000.0)
 
-function distance(lat1::AbstractFloat, lon1::AbstractFloat, 
+function distance(lat1::AbstractFloat, lon1::AbstractFloat,
     lat2::AbstractFloat, lon2::AbstractFloat, ref::ReferenceSphere=EarthSphere)
     dc = max(0.0, (Float64(1.0)-cosd(lon1-lon2))*cosd(lat1)*cosd(lat2))
     cosδ = cosd(lat1-lat2) - dc
@@ -39,7 +39,7 @@ end
 distance(p1::LatLon, p2::LatLon, ref::ReferenceSphere=EarthSphere) =
     distance(p1.lat, p1.lon, p2.lat, p2.lon, ref)
 
-function azimuth(lat1::AbstractFloat, lon1::AbstractFloat, 
+function azimuth(lat1::AbstractFloat, lon1::AbstractFloat,
     lat2::AbstractFloat, lon2::AbstractFloat, ref::ReferenceSphere=EarthSphere)
     n1 = [cosd(lon1)*cosd(lat1), sind(lon1)*cosd(lat1), sind(lat1)]
     n2 = [cosd(lon2)*cosd(lat2), sind(lon2)*cosd(lat2), sind(lat2)]

@@ -2,10 +2,16 @@ module DataProcess
 
 using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
-export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, 
-    resample!, resample, ZPK, trans, cut!, cut, merge
+TIME_PRECISION = Microsecond(1)
+TIME_PRECISION_SECOND_RATIO = Second(1)/TIME_PRECISION
+
+_Second(t::Real) = round(Int, t*TIME_PRECISION_SECOND_RATIO)*TIME_PRECISION
+
+export @linearscale
 
 include("macros.jl")
+
+export detrend, detrend!
 
 """
 ```
@@ -63,6 +69,8 @@ function detrend(x::AbstractVecOrMat; type::Symbol = :LeastSquare)
     detrend!(y; type = type)
     return y
 end
+
+export taper, taper!
 
 """
 ```
@@ -136,6 +144,8 @@ function taper(x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     return y
 end
 
+export bandpass, highpass, lowpass
+
 """
 ```
 bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
@@ -189,6 +199,7 @@ function highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
     return filtfilt(ftr, x)
 end
 
+export ZPK, trans, DISPLACEMENT, VELOCITY, ACCELERATION
 struct ZPK
     z::Vector{ComplexF64}
     p::Vector{ComplexF64}
@@ -392,16 +403,19 @@ end
 
 """
 ```
-freqspec(x::AbstractVecOrMat{<:Real}, dt::Real) -> (f, Amplitude, Phase)
+fap(x::AbstractVecOrMat{<:Real}, dt::Real) -> (f, Amplitude, Phase)
 ```
+calculate amplitude and phase vs frequency
 """
-function freqspec(x::AbstractVecOrMat{<:Real}, dt::Real)
+function fap(x::AbstractVecOrMat{<:Real}, dt::Real)
     f = range(0.0, 1.0, length=size(x, 1))./dt
     X = fft(x)
     A = abs.(X)
     p = angle.(X)
     return (f, A, p)
 end
+
+export fap, resample, resample!
 
 """
 ```
@@ -457,6 +471,8 @@ resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) -> VecOrMat
 """
 resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) = resample(x, round(Int, size(x, 1) * xdt / ydt))
 
+export cut, cut!
+
 """
 ```
 cut!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real}, startx::Integer, starty::Integer, len::Integer)
@@ -502,45 +518,74 @@ end
 
 """
 ```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond; fillval=0.0)
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::TimePeriod; fillval=0.0)
 -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
 ```
 
 cut rows from x, start from time `start` with time length `len`
 """
-function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond;
+function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::TimePeriod;
              fillval = 0.0)
-    npts = round(Int, Millisecond(len) / dt)
-    xstart = round(Int, Millisecond(start - xbegin) / dt) + 1
+    npts = round(Int, len / dt)
+    xstart = round(Int, (start - xbegin) / dt) + 1
     y = cut(x, xstart, npts; fillval = fillval)
     return (xbegin + (xstart - 1) * dt, y, dt)
 end
 
 """
 ```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond; fillval=0.0)
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+```
+
+cut rows from x, start from time `start` with time length `len`. `len` and `dt` is supposed to use unit `s`
+"""
+function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real;
+             fillval = 0.0)
+    npts = round(Int, _Second(len) / _Second(dt))
+    xstart = round(Int, (start - xbegin) / _Second(dt)) + 1
+    y = cut(x, xstart, npts; fillval = fillval)
+    return (xbegin + (xstart - 1) * _Second(dt), y, _Second(dt))
+end
+
+"""
+```
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::TimePeriod; fillval=0.0)
 -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
 ```
 
 cut rows from x, start from time `start` to time `stop`
 """
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond;
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::TimePeriod;
 fillval = 0.0) = cut(x, xbegin, start, stop - start, dt; fillval = fillval)
 
 """
 ```
-merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval=0.0)
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real; fillval=0.0)
 -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+```
+
+cut rows from x, start from time `start` to time `stop`
+"""
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real;
+fillval = 0.0) = cut(x, xbegin, start, stop - start, _Second(dt); fillval = fillval)
+
+export merge
+
+"""
+```
+merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::TimePeriod; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::TimePeriod)
 ```
 
 merge each element in x into one VecOrMat y, the latter element in x will overwrite data from the former element when
 there are overlapes
 """
-function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval = 0.0)
+function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::TimePeriod; fillval = 0.0)
     xstops = map(i -> xbegins[i] + dt * size(x[i], 1), eachindex(x))
     ybegin = minimum(xbegins)
     ystop = maximum(xstops)
-    len = round(Int, Millisecond(ystop - ybegin) / dt)
+    len = round(Int, (ystop - ybegin) / dt)
     if typeof(x[1]) <: AbstractVector
         y = fill(fillval, len)
     else

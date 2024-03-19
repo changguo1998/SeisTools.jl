@@ -1,11 +1,11 @@
 module Source
 
 using LinearAlgebra, Statistics
-import Base: show, isequal, +, -, Matrix
+import Base: show, isequal, +, -, Matrix, isapprox
 
 include("macros.jl")
 
-export MomentTensor, show, isequal, decompose, focalmechanism, beachball_bitmap, beachball_sdrline
+export MomentTensor, show, isequal, decompose, beachball_bitmap, beachball_sdrline, kagan, M0
 
 """
     ```
@@ -50,41 +50,21 @@ function MomentTensor(x::AbstractMatrix{<:Real})
     return MomentTensor(x[1, 1], x[2, 2], x[3, 3], x[1, 2], x[1, 3], x[2, 3])
 end
 
-function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVector{<:Real})
-    factor = planenorm[3] > 0.0 ? -1.0 : 1.0
-    n1 = planenorm .* factor
-    n2 = slipdirec .* factor
-    strike = mod(atand(n1[2], n1[1]) - 90.0, 360.0)
-    dip = 180.0 - acosd(n1[3])
-    refA = [cosd(strike), sind(strike), 0.0]
-    refB = cross(n1, refA)
-    rake = atand(dot(n2, refB), dot(n2, refA))
-    return (strike, dip, rake)
-end
-
-function _sdr2normvec(strike::Real, dip::Real, rake::Real)
-    n1 = [-sind(strike)*sind(dip), cosd(strike) * sind(dip), -cosd(dip)]
-    refA = [cosd(strike), sind(strike), 0.0]
-    refB = normalize(cross(n1, refA))
-    n2 = normalize(refA .* cosd(rake) + refB .* sind(rake))
-    return (n1, n2)
-end
-
 """
 ```
-MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real=1.0) -> MomentTensor
+MomentTensor(strike::Real, dip::Real, rake::Real; m0::Real=1.0) -> MomentTensor
 ```
 
 using focal mechanism format to create MomentTensor
 """
-function MomentTensor(strike::Real, dip::Real, rake::Real; scale::Real = 1.0)
+function MomentTensor(strike::Real, dip::Real, rake::Real; m0::Real = 1.0)
     m = zeros(6)
-    m[1] = -scale * (sind(2 * strike) * sind(dip) * cosd(rake) + (sind(strike))^2 * sind(2 * dip) * sind(rake))
-    m[2] = scale * (sind(2 * strike) * sind(dip) * cosd(rake) - (cosd(strike))^2 * sind(2 * dip) * sind(rake))
-    m[3] = scale * sind(2 * dip) * sind(rake)
-    m[4] = scale * (cosd(2 * strike) * sind(dip) * cosd(rake) + 0.5 * sind(2 * strike) * sind(2 * dip) * sind(rake))
-    m[5] = -scale * (cosd(strike) * cosd(dip) * cosd(rake) + sind(strike) * cosd(2 * dip) * sind(rake))
-    m[6] = -scale * (sind(strike) * cosd(dip) * cosd(rake) - cosd(strike) * cosd(2 * dip) * sind(rake))
+    m[1] = -m0 * (sind(2 * strike) * sind(dip) * cosd(rake) + (sind(strike))^2 * sind(2 * dip) * sind(rake))
+    m[2] = m0 * (sind(2 * strike) * sind(dip) * cosd(rake) - (cosd(strike))^2 * sind(2 * dip) * sind(rake))
+    m[3] = m0 * sind(2 * dip) * sind(rake)
+    m[4] = m0 * (cosd(2 * strike) * sind(dip) * cosd(rake) + 0.5 * sind(2 * strike) * sind(2 * dip) * sind(rake))
+    m[5] = -m0 * (cosd(strike) * cosd(dip) * cosd(rake) + sind(strike) * cosd(2 * dip) * sind(rake))
+    m[6] = -m0 * (sind(strike) * cosd(dip) * cosd(rake) - cosd(strike) * cosd(2 * dip) * sind(rake))
     return MomentTensor(m)
     # (n1, n2) = _sdr2normvec(strike, dip, rake)
     # M = n2 * permutedims(n1) + n1 * permutedims(n2)
@@ -189,6 +169,42 @@ function decompose(m::MomentTensor)
             clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
 end
 
+function _get_eigen_angle(u1, u3, v1, v3)
+    u2 = cross(u3, u1)
+    v2 = cross(v3, v1)
+    c = (tr([u1 u2 u3]*[v1 v2 v3]') - 1.0)*0.5
+    return acosd(max(-1.0, min(1.0, c)))
+end
+
+"""
+```
+function kagan(mt1::MomentTensor, mt2::MomentTensor)
+```
+
+kagan angle of the principle axis between mt1 and mt2.
+
+see Kagan, Y.Y. 1991. 3-D rotation of double-couple earthquake sources 106, 709–716.
+DOI: 10.1111/j.1365-246X.1991.tb06343.x
+"""
+function kagan(mt1::MomentTensor, mt2::MomentTensor)
+    m1 = Matrix(mt1)
+    m2 = Matrix(mt2)
+    E1 = eigen(m1)
+    E2 = eigen(m2)
+
+    if norm(E1.values-E2.values) > 1e-5
+        error("vector position is not correct")
+    end
+
+    return min(
+        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], E2.vectors[:,1], E2.vectors[:,3]),
+        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], -E2.vectors[:,1], E2.vectors[:,3]),
+        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], E2.vectors[:,1], -E2.vectors[:,3]),
+        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], -E2.vectors[:,1], -E2.vectors[:,3])
+    )
+end
+
+#=
 @doc raw"""
 ```
 focalmechanism(m::MomentTensor; digits::Integer = 0) -> (plane1=(strike1, dip1, rake1), plane2=(strike2, dip2, rake2))
@@ -210,6 +226,7 @@ function focalmechanism(m::MomentTensor; digits::Integer = 0)
     return (plane1 = round.(_normvec2sdr(n1, n2), digits = digits),
             plane2 = round.(_normvec2sdr(n2, n1), digits = digits))
 end
+=#
 
 function _linetrace(n::Vector{Float64}, theta::AbstractVector{Float64})
     xv = cross(n, [0.0, 0.0, 1.0]) |> normalize
@@ -283,5 +300,129 @@ function beachball_bitmap(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer
     end
     return vmap
 end
+
+export SDR
+
+"""
+```
+struct SDR
+    strike1::Float64
+    dip1::Float64
+    rake1::Float64
+    strike2::Float64
+    dip2::Float64
+    rake2::Float64
+    m0::Float64
+end
+```
+"""
+struct SDR
+    strike1::Float64
+    dip1::Float64
+    rake1::Float64
+    strike2::Float64
+    dip2::Float64
+    rake2::Float64
+    m0::Float64
+end
+
+function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVector{<:Real})
+    factor = planenorm[3] > 0.0 ? -1.0 : 1.0
+    n1 = planenorm .* factor
+    n2 = slipdirec .* factor
+    strike = mod(atand(n1[2], n1[1]) - 90.0, 360.0)
+    dip = 180.0 - acosd(n1[3])
+    refA = [cosd(strike), sind(strike), 0.0]
+    refB = cross(n1, refA)
+    rake = atand(dot(n2, refB), dot(n2, refA))
+    return (strike, dip, rake)
+end
+
+function _sdr2normvec(strike::Real, dip::Real, rake::Real)
+    n1 = [-sind(strike)*sind(dip), cosd(strike) * sind(dip), -cosd(dip)]
+    refA = [cosd(strike), sind(strike), 0.0]
+    refB = normalize(cross(n1, refA))
+    n2 = normalize(refA .* cosd(rake) + refB .* sind(rake))
+    return (n1, n2)
+end
+
+@doc raw"""
+```
+function SDR(strike::Real, dip::Real, rake::Real, m0::Real=1) -> SDR
+```
+"""
+function SDR(strike::Real, dip::Real, rake::Real, m0::Real=1)
+    (n1, n2) = _sdr2normvec(strike, dip, rake)
+    sdr1 = _normvec2sdr(n1, n2)
+    sdr2 = _normvec2sdr(n2, n1)
+    return SDR(Float64(sdr1[1]), Float64(sdr1[2]), Float64(sdr1[3]),
+        Float64(sdr2[1]), Float64(sdr2[2]), Float64(sdr2[3]), Float64(m0))
+end
+
+@doc raw"""
+```
+SDR(m::MomentTensor) -> SDR
+```
+
+calculate focal mechanism expression of `MomentTensor` m's double-couple component
+"""
+function SDR(m::MomentTensor)
+    dcmp = decompose(m)
+    M = Matrix(dcmp.dc)
+    (v, P) = eigen(M)
+    Paxis = P[:, 1]
+    # Baxis = P[:, 2]
+    Taxis = P[:, 3]
+    n1 = normalize(Paxis + Taxis)
+    n1 .*= n1[3] > 0.0 ? -1.0 : 1.0
+    n2 = normalize(M * n1)
+    return SDR(_normvec2sdr(n1, n2)..., M0(dcmp.dc))
+end
+
+"""
+```
+MomentTensor(sdr::SDR) -> MomentTensor
+```
+"""
+MomentTensor(sdr::SDR) = MomentTensor(sdr.strike1, sdr.dip1, sdr.rake1, m0=sdr.m0)
+
+"""
+```
+kagan(sdrA::SDR, sdrB::SDR)
+```
+"""
+function kagan(sdrA::SDR, sdrB::SDR)
+    (nA1, nA2) = _sdr2normvec(sdrA.strike1, sdrA.dip1, sdrA.rake1)
+    (nB1, nB2) = _sdr2normvec(sdrB.strike1, sdrB.dip1, sdrB.rake1)
+
+    return min(
+        _get_eigen_angle(nA1, nA2, nB1, nB2),
+        _get_eigen_angle(nA1, nA2, -nB1, nB2),
+        _get_eigen_angle(nA1, nA2, nB1, -nB2),
+        _get_eigen_angle(nA1, nA2, -nB1, -nB2)
+    )
+end
+
+function isapprox(sdrA::SDR, sdrB::SDR)
+    return Base.isapprox(kagan(sdrA,sdrB), 0.0) && Base.isapprox(sdrA.m0, sdrB.m0)
+end
+"""
+```
+beachball_sdrline(m::SDR, dtheta::Real=1.0) -> (l1=xy1, l2=xy2, edge=xy3)
+```
+"""
+beachball_sdrline(sdr::SDR, dtheta::Real = 1.0) =
+    beachball_sdrline(MomentTensor(sdr), dtheta; innerdecompose=false)
+
+"""
+```
+function beachball_bitmap(m::SDR; resolution=(201,201)) -> Matrix
+```
+
+get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
+"""
+beachball_bitmap(sdr::SDR, resolution::Tuple{<:Integer,<:Integer} = (201, 201)) =
+    beachball_bitmap(MomentTensor(sdr); resolution=resolution)
+
 
 end
