@@ -1,6 +1,6 @@
 name = "SeisTools"
 uuid = "1a3a5297-0f7d-450c-8955-231a439346a8"
-authors = ["windflows <guochang1024@foxmail.com>"]
+authors = ["Chang Guo <changguo1998@gmail.com>"]
 version = "0.1.0"
 
 [deps]

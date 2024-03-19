@@ -124,32 +124,33 @@ M0(m::MomentTensor) = Fnorm(m)/sqrt(2)
 decompose(m::MomentTensor) -> (iso=MomentTensor, dc=MomentTensor, clvd=MomentTensor)
 ```
 
-Decompose `MomentTensor` `m` into iso, double couple and CLVD with same coordinate system.
-The function run as steps below:
+Decompose `MomentTensor` `m` into ``M_{ISO}``, ``M_{DC}``(double couple) and
+``M_{CLVD}`` with same coordinate system. The function run as steps below:
 
-1. get eigen value of m as ``e_1 ≤ e_2 ≤ e_3`` and eigen vector matrix P
-2. iso = (e1 + e2 + e3) / 3.0
-3.
-```math
-clvd = \left(\begin{pmatrix}
-(e1+e3-2e2)/6 & & \\
-& (2e2-e1-e3)/3 & \\
-&  & (e1+e3-2e2)/6
-\end{pmatrix}\right)
-```
-4. dc  =
-```math
-dc = \left(\begin{pmatrix}
-(e1-e3)/2 & & \\
-& 0 & \\
-&  & (e3-e1)/2
-\end{pmatrix}\right)
-```
-5. Miso = P[iso, iso, iso]P'
-6. Mclvd = PclvdP'
-7. Mdc = PdcP'
+1. get eigen value of `m` as ``e_1 ≤ e_2 ≤ e_3`` and eigen vector matrix `P`
+2. ```math
+   M_{ISO} = P \begin{pmatrix}
+   (e_1 + e_2 + e_3) / 3 & & \\
+    & (e_1 + e_2 + e_3) / 3 & \\
+    & & (e_1 + e_2 + e_3) / 3
+   \end{pmatrix} P'
+   ```
+3. ```math
+   M_{CLVD} = P \begin{pmatrix}
+   (e_1+e_3-2e_2)/6 & & \\
+   & (2e_2-e_1-e_3)/3 & \\
+   &  & (e_1+e_3-2e_2)/6
+   \end{pmatrix} P'
+   ```
+4. ```math
+   M_{DC} = P \begin{pmatrix}
+   (e_1-e_3)/2 & & \\
+   & 0 & \\
+   &  & (e_3-e_1)/2
+   \end{pmatrix} P'
+   ```
 
-This decomposation keep that ``F(M)^2 = F(Miso)^2 + F(Mclvd)^2 + F(Mdc)^2``
+This decomposation keep that ``M0(M)^2 = M0(M_{ISO})^2 + M0(M_{CLVD})^2 + M0(M_{DC})^2``
 """
 function decompose(m::MomentTensor)
     (v, P) = eigen(Matrix(m))

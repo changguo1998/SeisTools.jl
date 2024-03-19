@@ -7,3 +7,4 @@ deps/deps.jl
 .gitignore
 .gcbackup.toml
 .JuliaFormatter.toml
+docs/build/
