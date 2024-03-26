@@ -58,7 +58,7 @@ end
 detrend(x::AbstractVecOrMat; type=:LeastSquare)
 ```
 
-Remove the linear content of x. The liear type can be
+Remove the linear content of x. The linear type can be
 
   - `:LeastSquare`(default) using Least Square method to get the linear content
   - `:Mean` using mean of x
