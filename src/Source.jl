@@ -119,55 +119,68 @@ F(M) = \frac{1}{\sqrt{2}}\sqrt{\sum_{i=1,3}\sum_{j=1,3}m_{ij}^2}
 """
 M0(m::MomentTensor) = Fnorm(m)/sqrt(2)
 
+"""
+```
+decompose_eigen(v, method) -> (iso, dc, clvd)
+```
+method:
+    - `:DC_DC` major/minor double couple
+    - `:DC_CLVD_1` double couple and clvd with sum of norm 1 == 1
+    - `:DC_CLVD_2` double couple and clvd with sum of norm 2 == 1
+"""
+function decompose_eigen(v::Vector{<:Real}; method::Symbol=:DC_CLVD_2)
+    @must issorted(v)
+    (m1, m2, m3) = v
+    iso = (m1 + m2 + m3) / 3.0
+    d1 = (2*m1 - m2 - m3) / 3.0
+    d2 = (2*m2 - m3 - m1) / 3.0
+    d3 = (2*m3 - m1 - m2) / 3.0
+    if method == :DC_DC
+        if d2 < 0.0
+            return (iso=[iso,iso,iso],dc1=[-d3,0.0,d3],dc2=[-d2,d2,0.0])
+        else
+            return (iso=[iso,iso,iso],dc1=[d1,0.0,-d1],dc2=[0.0,d2,-d2])
+        end
+    elseif method == :DC_CLVD_1
+        if d2 < 0.0
+            return (iso=[iso,iso,iso],dc=[d1-d2,0.0,d3+2*d2],clvd=[d2,d2,-2*d2])
+        else
+            return (iso=[iso,iso,iso],dc=[d1+2*d2,0.0,d3-d2],clvd=[-2*d2,d2,d2])
+        end
+    elseif method == :DC_CLVD_2
+        return (iso=[iso,iso,iso],dc=[d1+d2/2,0.0,d3+d2/2],clvd=[-d2/2,d2,-d2/2])
+    else
+        error("illegal method $method")
+    end
+end
+
 @doc raw"""
 ```
-decompose(m::MomentTensor) -> (iso=MomentTensor, dc=MomentTensor, clvd=MomentTensor)
+decompose(m; method) -> (iso, dc, clvd)/(iso, dc1, dc2)
 ```
 
 Decompose `MomentTensor` `m` into ``M_{ISO}``, ``M_{DC}``(double couple) and
-``M_{CLVD}`` with same coordinate system. The function run as steps below:
+``M_{CLVD}`` with same coordinate system.
 
-1. get eigen value of `m` as ``e_1 ≤ e_2 ≤ e_3`` and eigen vector matrix `P`
-2. ```math
-   M_{ISO} = P \begin{pmatrix}
-   (e_1 + e_2 + e_3) / 3 & & \\
-    & (e_1 + e_2 + e_3) / 3 & \\
-    & & (e_1 + e_2 + e_3) / 3
-   \end{pmatrix} P'
-   ```
-3. ```math
-   M_{CLVD} = P \begin{pmatrix}
-   (e_1+e_3-2e_2)/6 & & \\
-   & (2e_2-e_1-e_3)/3 & \\
-   &  & (e_1+e_3-2e_2)/6
-   \end{pmatrix} P'
-   ```
-4. ```math
-   M_{DC} = P \begin{pmatrix}
-   (e_1-e_3)/2 & & \\
-   & 0 & \\
-   &  & (e_3-e_1)/2
-   \end{pmatrix} P'
-   ```
-
-This decomposation keep that ``M0(M)^2 = M0(M_{ISO})^2 + M0(M_{CLVD})^2 + M0(M_{DC})^2``
 """
-function decompose(m::MomentTensor)
+function decompose(m::MomentTensor; method::Symbol=:DC_CLVD_2)
     (v, P) = eigen(Matrix(m))
     PT = permutedims(P)
-    iso = mean(v)
-    c2 = (2 * v[2] - v[1] - v[3]) / 3.0
-    c1 = -c2 / 2.0
-    c3 = -c2 / 2.0
-    s1 = (v[1] - v[3]) / 2.0
-    s2 = 0.0
-    s3 = (v[3] - v[1]) / 2.0
-    Miso = P * diagm([iso, iso, iso]) * PT
-    Mdc = P * diagm([s1, s2, s3]) * PT
-    Mclvd = P * diagm([c1, c2, c3]) * PT
-    return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
-            dc = MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
-            clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
+    decomposed = decompose_eigen(v; method=method)
+    Miso = P * diagm(decomposed.iso) * PT
+    if method == :DC_DC
+        Mdc1 = P * diagm(decomposed.dc1) * PT
+        Mdc2 = P * diagm(decomposed.dc2) * PT
+        return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
+                dc1 = MomentTensor((Mdc1 + permutedims(Mdc1)) ./ 2),
+                dc2 = MomentTensor((Mdc2 + permutedims(Mdc2)) ./ 2))
+    else
+        Mdc = P * diagm(decomposed.dc) * PT
+        Mclvd = P * diagm(decomposed.clvd) * PT
+        return (iso = MomentTensor((Miso + permutedims(Miso)) ./ 2),
+                dc = MomentTensor((Mdc + permutedims(Mdc)) ./ 2),
+                clvd = MomentTensor((Mclvd + permutedims(Mclvd)) ./ 2))
+    end
 end
 
 function _get_eigen_angle(u1, u3, v1, v3)
