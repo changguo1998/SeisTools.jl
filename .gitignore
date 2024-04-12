@@ -8,3 +8,4 @@ deps/deps.jl
 .gcbackup.toml
 .JuliaFormatter.toml
 docs/build/
+Manifest.toml

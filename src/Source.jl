@@ -161,6 +161,7 @@ decompose(m; method) -> (iso, dc, clvd)/(iso, dc1, dc2)
 
 Decompose `MomentTensor` `m` into ``M_{ISO}``, ``M_{DC}``(double couple) and
 ``M_{CLVD}`` with same coordinate system.
+See function `decompose_eigen` for more detail
 
 """
 function decompose(m::MomentTensor; method::Symbol=:DC_CLVD_2)
