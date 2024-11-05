@@ -55,7 +55,7 @@ struct ReferenceEllipsoid <: ReferenceModel
     unit::String
     a::Float64
     b::Float64
-    f::Float64
+    fi::Float64
 end
 
 function ReferenceEllipsoid(; unit::String="m", a::Real=0, b::Real=0, fi::Real=-1)
@@ -173,6 +173,11 @@ function utm2ll(x::Real, y::Real, f::Integer, ref::ReferenceEllipsoid=WGS84)
     return (lat, lon)
 end
 
+function LatLon(c::UTM, ref::ReferenceEllipsoid=WGS84)
+    (lat, lon) = utm2ll(c.x, c.y, c.r, ref)
+    return LatLon(lat, lon, c.el)
+end
+
 """
 ll2utm(lat,lon; ref=WGS84) -> (x, y, f)
 """
@@ -204,6 +209,11 @@ function ll2utm(lat::Real, lon::Real, ref::ReferenceEllipsoid=WGS84)
     x = imag(Z) + X0
     y = real(Z) + YS
     return (x, y, F0)
+end
+
+function UTM(c::LatLon, ref::ReferenceEllipsoid=WGS84)
+    (x, y, r) = ll2utm(c.lat, c.lon, ref)
+    return UTM(x, y, r, c.el)
 end
 
 #=
