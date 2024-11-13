@@ -9,7 +9,7 @@ _Second(t::Real) = round(Int, t*TIME_PRECISION_SECOND_RATIO)*TIME_PRECISION
 
 export @linearscale
 
-include("macros.jl")
+include("basic.jl")
 
 export detrend, detrend!
 

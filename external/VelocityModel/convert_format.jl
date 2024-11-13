@@ -2,11 +2,10 @@ wkdir = abspath(@__DIR__)
 @info "run in directory: $wkdir"
 modeldirs = filter(readdir(wkdir)) do mdir
     if !isdir(joinpath(wkdir, mdir))
-        flag = false
+        return false
     end
     files = readdir(joinpath(wkdir, mdir))
-    flag = length(files) > 2
-    flag
+    return length(files) > 2
 end
 
 @info "$(length(modeldirs)) model(s) are found:"
@@ -17,7 +16,8 @@ end
 @info "Start converting..."
 for m in modeldirs
     @info "    $(m) ..."
-    cmd = Cmd(["julia", "build_db.jl"]; dir=joinpath(wkdir, m))
+    cmd = Cmd(Cmd(["julia", "build_db.jl"]); dir=joinpath(wkdir, m))
+    run(cmd)
     @info "    $(m) done"
 end
 

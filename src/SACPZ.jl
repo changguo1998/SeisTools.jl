@@ -2,7 +2,7 @@ module SACPZ
 using Dates, Printf
 using Base: parse as baseparse
 
-include("macros.jl")
+include("basic.jl")
 
 HEAD = ("NETWORK", "STATION", "LOCATION", "CHANNEL", "CREATED", "START", "END", "DESCRIPTION", "LATITUDE", "LONGITUDE",
         "ELEVATION", "DEPTH", "DIP", "AZIMUTH", "SAMPLE_RATE", "INPUT_UNIT", "OUTPUT_UNIT", "INSTTYPE", "INSTGAIN",

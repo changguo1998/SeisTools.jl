@@ -2,7 +2,7 @@ module Geodesy
 
 using LinearAlgebra, Statistics
 
-include("macros.jl")
+include("basic.jl")
 
 abstract type Point <: Any end
 

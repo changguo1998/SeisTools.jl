@@ -9,3 +9,7 @@ deps/deps.jl
 .JuliaFormatter.toml
 docs/build/
 Manifest.toml
+*.dat
+*.bin
+*.tar.gz
+*.csv

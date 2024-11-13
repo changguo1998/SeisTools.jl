@@ -3,7 +3,7 @@ module Source
 using LinearAlgebra, Statistics
 import Base: show, isequal, +, -, Matrix, isapprox
 
-include("macros.jl")
+include("basic.jl")
 
 export MomentTensor, show, isequal, decompose, beachball_bitmap, beachball_sdrline, kagan, M0
 
