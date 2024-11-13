@@ -25,6 +25,7 @@ Qm  = y[:, 6]
 
 
 io1 = open("flat.bin", "w")
+write(io1, Int64(6))
 _write_f64_vector!(io1, d)
 _write_f64_vector!(io1, vp)
 _write_f64_vector!(io1, vs)
@@ -34,6 +35,7 @@ _write_f64_vector!(io1, Qm)
 close(io1)
 
 io2 = open("sphere.bin", "w")
+write(io2, Int64(6))
 _write_f64_vector!(io2, reverse(r))
 _write_f64_vector!(io2, reverse(vp))
 _write_f64_vector!(io2, reverse(vs))

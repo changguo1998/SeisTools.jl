@@ -54,12 +54,37 @@ end
 function FlatLayer(fp_or_nm::String)
     if isfile(fp_or_nm)
         io = open(fp_or_nm, "r")
-        d = _read_f64_vector(io)
-        α = _read_f64_vector(io)
-        β = _read_f64_vector(io)
-        ρ = _read_f64_vector(io)
-        Qk = _read_f64_vector(io)
-        Qm = _read_f64_vector(io)
+        n = read(io, Int64)
+        if n > 0
+            d = _read_f64_vector(io)
+        else
+            d = Float64[]
+        end
+        if n > 1
+            α = _read_f64_vector(io)
+        else
+            α = Float64[]
+        end
+        if n > 2
+            β = _read_f64_vector(io)
+        else
+            β = Float64[]
+        end
+        if n > 3
+            ρ = _read_f64_vector(io)
+        else
+            ρ = Float64[]
+        end
+        if n > 4
+            Qk = _read_f64_vector(io)
+        else
+            Qk = Float64[]
+        end
+        if n > 5
+            Qm = _read_f64_vector(io)
+        else
+            Qm = Float64[]
+        end
         close(io)
         return FlatLayer(d, α, β, ρ, Qk, Qm)
     end
@@ -117,12 +142,37 @@ end
 function SphereLayer(fp_or_nm::String)
     if isfile(fp_or_nm)
         io = open(fp_or_nm, "r")
-        r = _read_f64_vector(io)
-        α = _read_f64_vector(io)
-        β = _read_f64_vector(io)
-        ρ = _read_f64_vector(io)
-        Qk = _read_f64_vector(io)
-        Qm = _read_f64_vector(io)
+        n = read(io, Int64)
+        if n > 0
+            r = _read_f64_vector(io)
+        else
+            r = Float64[]
+        end
+        if n > 1
+            α = _read_f64_vector(io)
+        else
+            α = Float64[]
+        end
+        if n > 2
+            β = _read_f64_vector(io)
+        else
+            β = Float64[]
+        end
+        if n > 3
+            ρ = _read_f64_vector(io)
+        else
+            ρ = Float64[]
+        end
+        if n > 4
+            Qk = _read_f64_vector(io)
+        else
+            Qk = Float64[]
+        end
+        if n > 5
+            Qm = _read_f64_vector(io)
+        else
+            Qm = Float64[]
+        end
         close(io)
         return SphereLayer(r, α, β, ρ, Qk, Qm)
     end
@@ -146,28 +196,76 @@ struct PsudoRegular3D <: AbstractVelocityModel
     α::Array{Float64}
     β::Array{Float64}
     ρ::Array{Float64}
+    Qk::Array{Float64}
+    Qm::Array{Float64}
+end
+
+function PsudoRegular3D(x::Vector{<:Real} = Float64[],
+                        y::Vector{<:Real} = Float64[],
+                        d::Array{<:Real} = zeros(0, 0, 0),
+                        α::Array{<:Real} = zeros(0, 0, 0),
+                        β::Array{<:Real} = zeros(0, 0, 0),
+                        ρ::Array{<:Real} = zeros(0, 0, 0),
+                        Qk::Array{<:Real} = zeros(0, 0, 0),
+                        Qm::Array{<:Real} = zeros(0, 0, 0))
+    return PsudoRegular3D(x, y, d, α, β, ρ, Qk, Qm)
 end
 
 function PsudoRegular3D(fp_or_nm::String)
     if isfile(fp_or_nm)
         io = open(fp_or_nm, "r")
-        x = _read_f64_vector(io)
-        y = _read_f64_vector(io)
-        d = _read_f64_array(io)
-        α = _read_f64_array(io)
-        β = _read_f64_array(io)
-        ρ = _read_f64_array(io)
+        n = read(io, Int64)
+        if n > 0
+            x = _read_f64_vector(io)
+        else
+            x = Float64[]
+        end
+        if n > 1
+            y = _read_f64_vector(io)
+        else
+            y = Float64[]
+        end
+        if n > 2
+            d = _read_f64_array(io)
+        else
+            d = zeros(0, 0, 0)
+        end
+        if n > 3
+            α = _read_f64_array(io)
+        else
+            α = zeros(0, 0, 0)
+        end
+        if n > 4
+            β = _read_f64_array(io)
+        else
+            β = zeros(0, 0, 0)
+        end
+        if n > 5
+            ρ = _read_f64_array(io)
+        else
+            ρ = zeros(0, 0, 0)
+        end
+        if n > 6
+            Qk = _read_f64_array(io)
+        else
+            Qk = zeros(0, 0, 0)
+        end
+        if n > 7
+            Qm = _read_f64_array(io)
+        else
+            Qm = zeros(0, 0, 0)
+        end
         close(io)
-        return PsudoRegular3D(x, y, d, α, β, ρ)
+        return PsudoRegular3D(x, y, d, α, β, ρ, Qk, Qm)
     end
     available_velocity_models = String[]
-    for md in ("CRUST1.0")
-        if isfile(joinpath(@__DIR__, "..", "external", "VelocityModel", md, "data.bin"))
+    for md in ("CRUST1.0",)
+        if isfile(joinpath(@__DIR__, "..", "external", "VelocityModel", md, "psr3d.bin"))
             push!(available_velocity_models, md)
         end
     end
     if fp_or_nm ∈ available_velocity_models
-        return PsudoRegular3D(joinpath(@__DIR__, "..", "external", "VelocityModel", fp_or_nm, "data.bin"))
+        return PsudoRegular3D(joinpath(@__DIR__, "..", "external", "VelocityModel", fp_or_nm, "psr3d.bin"))
     end
     error("Input is neither a file path nor a available model name")
     return nothing
