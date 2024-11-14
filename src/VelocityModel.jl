@@ -1,5 +1,7 @@
 module VelocityModel
 
+import Base: Matrix
+
 include("basic.jl")
 
 """
