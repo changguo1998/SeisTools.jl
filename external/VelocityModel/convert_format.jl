@@ -1,4 +1,5 @@
 wkdir = abspath(@__DIR__)
+@info "Build velocity model database"
 @info "run in directory: $wkdir"
 modeldirs = filter(readdir(wkdir)) do mdir
     if !isdir(joinpath(wkdir, mdir))
