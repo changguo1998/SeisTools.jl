@@ -1,13 +1,16 @@
 module SeisTools
 
 # * modules
-include("SAC.jl")
-include("SEGY.jl")
+# include("CommonFunction.jl")
 include("DataProcess.jl")
-include("SACPZ.jl")
-include("Source.jl")
 include("Geodesy.jl")
 include("QualityControl.jl")
+include("SAC.jl")
+include("SACPZ.jl")
+include("SEGY.jl")
+include("Source.jl")
+include("Topography.jl")
+include("VelocityModel.jl")
 
 function download_external_data()
     external_path = abspath(@__DIR__, "..", "external")
