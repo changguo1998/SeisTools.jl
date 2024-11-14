@@ -29,15 +29,24 @@ end
 
 EarthSphere = ReferenceSphere("m", 6371000.0)
 
+"""
+distance(lat1, lon1, lat2, lon2, ref=EarthSphere) -> distance in meter
+"""
 function distance(lat1::Real, lon1::Real, lat2::Real, lon2::Real, ref::ReferenceSphere=EarthSphere)
     dc = max(0.0, (Float64(1.0)-cosd(lon1-lon2))*cosd(lat1)*cosd(lat2))
     cosδ = cosd(lat1-lat2) - dc
     return ref.r * acos(cosδ)
 end
 
+"""
+distance(p1, p2, ref=EarthSphere) -> distance in meter
+"""
 distance(p1::LatLon, p2::LatLon, ref::ReferenceSphere=EarthSphere) =
     distance(p1.lat, p1.lon, p2.lat, p2.lon, ref)
 
+"""
+azimuth(lat1, lon1, lat2, lon2, ref=EarthSphere) -> azimuth in degree
+"""
 function azimuth(lat1::Real, lon1::Real, lat2::Real, lon2::Real, ref::ReferenceSphere=EarthSphere)
     if ref != EarthSphere
         error("only for sphere model")
@@ -115,6 +124,9 @@ end
 
 """
 utm2ll(x,y,f,ref=WGS84) -> (lat, lon)
+
+- x, y in meters
+- f - integer
 """
 function utm2ll(x::Real, y::Real, f::Integer, ref::ReferenceEllipsoid=WGS84)
 
@@ -180,6 +192,8 @@ end
 
 """
 ll2utm(lat,lon; ref=WGS84) -> (x, y, f)
+
+- x, y in meters
 """
 function ll2utm(lat::Real, lon::Real, ref::ReferenceEllipsoid=WGS84)
     D0 = 180.0/pi
