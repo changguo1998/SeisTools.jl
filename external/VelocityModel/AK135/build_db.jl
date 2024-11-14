@@ -1,4 +1,9 @@
 # converting script for ak135 model
+
+if isfile("flat.bin") && isfile("sphere.bin")
+    exit(0)
+end
+
 using DelimitedFiles
 
 include(abspath(@__DIR__, "../../../src/basic.jl"))

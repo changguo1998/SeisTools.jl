@@ -1,4 +1,8 @@
 # CRUST1.0 model
+if isfile("psr3d.bin")
+    exit(0)
+end
+
 using DelimitedFiles
 
 # include(abspath(@__DIR__, "../../../src/basic.jl"))
