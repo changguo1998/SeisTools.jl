@@ -204,9 +204,6 @@ struct ZPK
     z::Vector{ComplexF64}
     p::Vector{ComplexF64}
     k::Float64
-    function ZPK(z::Vector{ComplexF64}, p::Vector{ComplexF64}, k::Float64 = 1.0)
-        return new(z, p, k)
-    end
 end
 
 function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
