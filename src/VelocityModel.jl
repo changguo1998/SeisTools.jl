@@ -73,7 +73,7 @@ function FlatLayer(d::Vector{<:Real} = Float64[],
                    dens::Vector{<:Real} = Float64[],
                    Qk::Vector{<:Real} = Float64[],
                    Qm::Vector{<:Real} = Float64[])
-    return FlatLayer(Float64.(_d), Float64.(_vp), Float64.(_vs), Float64.(_dens), Float64.(_Qk), Float64.(_Qm))
+    return FlatLayer(Float64.(d), Float64.(vp), Float64.(vs), Float64.(dens), Float64.(Qk), Float64.(Qm))
 end
 
 function FlatLayer(vel::Matrix{<:Real})
@@ -93,38 +93,14 @@ end
 
 function FlatLayer(fp_or_nm::String)
     if isfile(fp_or_nm)
-        io = open(fp_or_nm, "r")
-        n = read(io, Int64)
-        if n > 0
-            d = _read_f64_vector(io)
-        else
-            d = Float64[]
-        end
-        if n > 1
-            vp = _read_f64_vector(io)
-        else
-            vp = Float64[]
-        end
-        if n > 2
-            vs = _read_f64_vector(io)
-        else
-            vs = Float64[]
-        end
-        if n > 3
-            dens = _read_f64_vector(io)
-        else
-            dens = Float64[]
-        end
-        if n > 4
-            Qk = _read_f64_vector(io)
-        else
-            Qk = Float64[]
-        end
-        if n > 5
-            Qm = _read_f64_vector(io)
-        else
-            Qm = Float64[]
-        end
+        io   = open(fp_or_nm, "r")
+        n    = read(io, Int64)
+        d    = n > 0 ? _read_f64_vector(io) : Float64[]
+        vp   = n > 1 ? _read_f64_vector(io) : Float64[]
+        vs   = n > 2 ? _read_f64_vector(io) : Float64[]
+        dens = n > 3 ? _read_f64_vector(io) : Float64[]
+        Qk   = n > 4 ? _read_f64_vector(io) : Float64[]
+        Qm   = n > 5 ? _read_f64_vector(io) : Float64[]
         close(io)
         return FlatLayer(d, vp, vs, dens, Qk, Qm)
     end
@@ -247,38 +223,14 @@ end
 
 function SphereLayer(fp_or_nm::String)
     if isfile(fp_or_nm)
-        io = open(fp_or_nm, "r")
-        n = read(io, Int64)
-        if n > 0
-            r = _read_f64_vector(io)
-        else
-            r = Float64[]
-        end
-        if n > 1
-            vp = _read_f64_vector(io)
-        else
-            vp = Float64[]
-        end
-        if n > 2
-            vs = _read_f64_vector(io)
-        else
-            vs = Float64[]
-        end
-        if n > 3
-            dens = _read_f64_vector(io)
-        else
-            dens = Float64[]
-        end
-        if n > 4
-            Qk = _read_f64_vector(io)
-        else
-            Qk = Float64[]
-        end
-        if n > 5
-            Qm = _read_f64_vector(io)
-        else
-            Qm = Float64[]
-        end
+        io   = open(fp_or_nm, "r")
+        n    = read(io, Int64)
+        r    = n > 0 ? _read_f64_vector(io) : Float64[]
+        vp   = n > 1 ? _read_f64_vector(io) : Float64[]
+        vs   = n > 2 ? _read_f64_vector(io) : Float64[]
+        dens = n > 3 ? _read_f64_vector(io) : Float64[]
+        Qk   = n > 4 ? _read_f64_vector(io) : Float64[]
+        Qm   = n > 5 ? _read_f64_vector(io) : Float64[]
         close(io)
         return SphereLayer(r, vp, vs, dens, Qk, Qm)
     end
@@ -321,46 +273,14 @@ function PsudoRegular3D(fp_or_nm::String)
     if isfile(fp_or_nm)
         io = open(fp_or_nm, "r")
         n = read(io, Int64)
-        if n > 0
-            x = _read_f64_vector(io)
-        else
-            x = Float64[]
-        end
-        if n > 1
-            y = _read_f64_vector(io)
-        else
-            y = Float64[]
-        end
-        if n > 2
-            d = _read_f64_array(io)
-        else
-            d = zeros(0, 0, 0)
-        end
-        if n > 3
-            vp = _read_f64_array(io)
-        else
-            vp = zeros(0, 0, 0)
-        end
-        if n > 4
-            vs = _read_f64_array(io)
-        else
-            vs = zeros(0, 0, 0)
-        end
-        if n > 5
-            dens = _read_f64_array(io)
-        else
-            dens = zeros(0, 0, 0)
-        end
-        if n > 6
-            Qk = _read_f64_array(io)
-        else
-            Qk = zeros(0, 0, 0)
-        end
-        if n > 7
-            Qm = _read_f64_array(io)
-        else
-            Qm = zeros(0, 0, 0)
-        end
+        x    = n > 0 ? _read_f64_vector(io) : Float64[]
+        y    = n > 1 ? _read_f64_vector(io) : Float64[]
+        d    = n > 2 ? _read_f64_array(io) : zeros(0, 0, 0)
+        vp   = n > 3 ? _read_f64_array(io) : zeros(0, 0, 0)
+        vs   = n > 4 ? _read_f64_array(io) : zeros(0, 0, 0)
+        dens = n > 5 ? _read_f64_array(io) : zeros(0, 0, 0)
+        Qk   = n > 6 ? _read_f64_array(io) : zeros(0, 0, 0)
+        Qm   = n > 7 ? _read_f64_array(io) : zeros(0, 0, 0)
         close(io)
         return PsudoRegular3D(x, y, d, vp, vs, dens, Qk, Qm)
     end
