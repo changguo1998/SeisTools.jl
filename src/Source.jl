@@ -73,8 +73,8 @@ end
 
 function Matrix(m::MomentTensor)
     return [m.values[1] m.values[4] m.values[5];
-         m.values[4] m.values[2] m.values[6];
-         m.values[5] m.values[6] m.values[3]]
+            m.values[4] m.values[2] m.values[6];
+            m.values[5] m.values[6] m.values[3]]
 end
 
 function show(io::IO, m::MomentTensor)
@@ -117,38 +117,40 @@ return `M0` of `MomentTensor`
 F(M) = \frac{1}{\sqrt{2}}\sqrt{\sum_{i=1,3}\sum_{j=1,3}m_{ij}^2}
 ```
 """
-M0(m::MomentTensor) = Fnorm(m)/sqrt(2)
+M0(m::MomentTensor) = Fnorm(m) / sqrt(2)
 
 """
 ```
 decompose_eigen(v, method) -> (iso, dc, clvd)
 ```
+
 method:
-    - `:DC_DC` major/minor double couple
-    - `:DC_CLVD_1` double couple and clvd with sum of norm 1 == 1
-    - `:DC_CLVD_2` double couple and clvd with sum of norm 2 == 1
+
+  - `:DC_DC` major/minor double couple
+  - `:DC_CLVD_1` double couple and clvd with sum of norm 1 == 1
+  - `:DC_CLVD_2` double couple and clvd with sum of norm 2 == 1
 """
-function decompose_eigen(v::Vector{<:Real}; method::Symbol=:DC_CLVD_2)
+function decompose_eigen(v::Vector{<:Real}; method::Symbol = :DC_CLVD_2)
     @must issorted(v)
     (m1, m2, m3) = v
     iso = (m1 + m2 + m3) / 3.0
-    d1 = (2*m1 - m2 - m3) / 3.0
-    d2 = (2*m2 - m3 - m1) / 3.0
-    d3 = (2*m3 - m1 - m2) / 3.0
+    d1 = (2 * m1 - m2 - m3) / 3.0
+    d2 = (2 * m2 - m3 - m1) / 3.0
+    d3 = (2 * m3 - m1 - m2) / 3.0
     if method == :DC_DC
         if d2 < 0.0
-            return (iso=[iso,iso,iso],dc1=[-d3,0.0,d3],dc2=[-d2,d2,0.0])
+            return (iso = [iso, iso, iso], dc1 = [-d3, 0.0, d3], dc2 = [-d2, d2, 0.0])
         else
-            return (iso=[iso,iso,iso],dc1=[d1,0.0,-d1],dc2=[0.0,d2,-d2])
+            return (iso = [iso, iso, iso], dc1 = [d1, 0.0, -d1], dc2 = [0.0, d2, -d2])
         end
     elseif method == :DC_CLVD_1
         if d2 < 0.0
-            return (iso=[iso,iso,iso],dc=[d1-d2,0.0,d3+2*d2],clvd=[d2,d2,-2*d2])
+            return (iso = [iso, iso, iso], dc = [d1 - d2, 0.0, d3 + 2 * d2], clvd = [d2, d2, -2 * d2])
         else
-            return (iso=[iso,iso,iso],dc=[d1+2*d2,0.0,d3-d2],clvd=[-2*d2,d2,d2])
+            return (iso = [iso, iso, iso], dc = [d1 + 2 * d2, 0.0, d3 - d2], clvd = [-2 * d2, d2, d2])
         end
     elseif method == :DC_CLVD_2
-        return (iso=[iso,iso,iso],dc=[d1+d2/2,0.0,d3+d2/2],clvd=[-d2/2,d2,-d2/2])
+        return (iso = [iso, iso, iso], dc = [d1 + d2 / 2, 0.0, d3 + d2 / 2], clvd = [-d2 / 2, d2, -d2 / 2])
     else
         error("illegal method $method")
     end
@@ -164,10 +166,10 @@ Decompose `MomentTensor` `m` into ``M_{ISO}``, ``M_{DC}``(double couple) and
 See function `decompose_eigen` for more detail
 
 """
-function decompose(m::MomentTensor; method::Symbol=:DC_CLVD_2)
+function decompose(m::MomentTensor; method::Symbol = :DC_CLVD_2)
     (v, P) = eigen(Matrix(m))
     PT = permutedims(P)
-    decomposed = decompose_eigen(v; method=method)
+    decomposed = decompose_eigen(v; method = method)
     Miso = P * diagm(decomposed.iso) * PT
     if method == :DC_DC
         Mdc1 = P * diagm(decomposed.dc1) * PT
@@ -187,7 +189,7 @@ end
 function _get_eigen_angle(u1, u3, v1, v3)
     u2 = cross(u3, u1)
     v2 = cross(v3, v1)
-    c = (tr([u1 u2 u3]*[v1 v2 v3]') - 1.0)*0.5
+    c = (tr([u1 u2 u3] * [v1 v2 v3]') - 1.0) * 0.5
     return acosd(max(-1.0, min(1.0, c)))
 end
 
@@ -207,16 +209,14 @@ function kagan(mt1::MomentTensor, mt2::MomentTensor)
     E1 = eigen(m1)
     E2 = eigen(m2)
 
-    if norm(E1.values-E2.values) > 1e-5
+    if norm(E1.values - E2.values) > 1e-5
         error("vector position is not correct")
     end
 
-    return min(
-        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], E2.vectors[:,1], E2.vectors[:,3]),
-        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], -E2.vectors[:,1], E2.vectors[:,3]),
-        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], E2.vectors[:,1], -E2.vectors[:,3]),
-        _get_eigen_angle(E1.vectors[:,1], E1.vectors[:,3], -E2.vectors[:,1], -E2.vectors[:,3])
-    )
+    return min(_get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 1], E2.vectors[:, 3]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], E2.vectors[:, 3]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 1], -E2.vectors[:, 3]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], -E2.vectors[:, 3]))
 end
 
 #=
@@ -354,7 +354,7 @@ function _normvec2sdr(planenorm::AbstractVector{<:Real}, slipdirec::AbstractVect
 end
 
 function _sdr2normvec(strike::Real, dip::Real, rake::Real)
-    n1 = [-sind(strike)*sind(dip), cosd(strike) * sind(dip), -cosd(dip)]
+    n1 = [-sind(strike) * sind(dip), cosd(strike) * sind(dip), -cosd(dip)]
     refA = [cosd(strike), sind(strike), 0.0]
     refB = normalize(cross(n1, refA))
     n2 = normalize(refA .* cosd(rake) + refB .* sind(rake))
@@ -366,12 +366,12 @@ end
 function SDR(strike::Real, dip::Real, rake::Real, m0::Real=1) -> SDR
 ```
 """
-function SDR(strike::Real, dip::Real, rake::Real, m0::Real=1)
+function SDR(strike::Real, dip::Real, rake::Real, m0::Real = 1)
     (n1, n2) = _sdr2normvec(strike, dip, rake)
     sdr1 = _normvec2sdr(n1, n2)
     sdr2 = _normvec2sdr(n2, n1)
     return SDR(Float64(sdr1[1]), Float64(sdr1[2]), Float64(sdr1[3]),
-        Float64(sdr2[1]), Float64(sdr2[2]), Float64(sdr2[3]), Float64(m0))
+               Float64(sdr2[1]), Float64(sdr2[2]), Float64(sdr2[3]), Float64(m0))
 end
 
 @doc raw"""
@@ -399,7 +399,7 @@ end
 MomentTensor(sdr::SDR) -> MomentTensor
 ```
 """
-MomentTensor(sdr::SDR) = MomentTensor(sdr.strike1, sdr.dip1, sdr.rake1, m0=sdr.m0)
+MomentTensor(sdr::SDR) = MomentTensor(sdr.strike1, sdr.dip1, sdr.rake1; m0 = sdr.m0)
 
 """
 ```
@@ -410,24 +410,21 @@ function kagan(sdrA::SDR, sdrB::SDR)
     (nA1, nA2) = _sdr2normvec(sdrA.strike1, sdrA.dip1, sdrA.rake1)
     (nB1, nB2) = _sdr2normvec(sdrB.strike1, sdrB.dip1, sdrB.rake1)
 
-    return min(
-        _get_eigen_angle(nA1, nA2, nB1, nB2),
-        _get_eigen_angle(nA1, nA2, -nB1, nB2),
-        _get_eigen_angle(nA1, nA2, nB1, -nB2),
-        _get_eigen_angle(nA1, nA2, -nB1, -nB2)
-    )
+    return min(_get_eigen_angle(nA1, nA2, nB1, nB2),
+               _get_eigen_angle(nA1, nA2, -nB1, nB2),
+               _get_eigen_angle(nA1, nA2, nB1, -nB2),
+               _get_eigen_angle(nA1, nA2, -nB1, -nB2))
 end
 
 function isapprox(sdrA::SDR, sdrB::SDR)
-    return Base.isapprox(kagan(sdrA,sdrB), 0.0) && Base.isapprox(sdrA.m0, sdrB.m0)
+    return Base.isapprox(kagan(sdrA, sdrB), 0.0) && Base.isapprox(sdrA.m0, sdrB.m0)
 end
 """
 ```
 beachball_sdrline(m::SDR, dtheta::Real=1.0) -> (l1=xy1, l2=xy2, edge=xy3)
 ```
 """
-beachball_sdrline(sdr::SDR, dtheta::Real = 1.0) =
-    beachball_sdrline(MomentTensor(sdr), dtheta; innerdecompose=false)
+beachball_sdrline(sdr::SDR, dtheta::Real = 1.0) = beachball_sdrline(MomentTensor(sdr), dtheta; innerdecompose = false)
 
 """
 ```
@@ -436,8 +433,7 @@ function beachball_bitmap(m::SDR; resolution=(201,201)) -> Matrix
 
 get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
 """
-beachball_bitmap(sdr::SDR, resolution::Tuple{<:Integer,<:Integer} = (201, 201)) =
-    beachball_bitmap(MomentTensor(sdr); resolution=resolution)
-
+beachball_bitmap(sdr::SDR, resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap(MomentTensor(sdr);
+                                                                                                   resolution = resolution)
 
 end

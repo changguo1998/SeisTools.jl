@@ -3,9 +3,9 @@ module DataProcess
 using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
 TIME_PRECISION = Microsecond(1)
-TIME_PRECISION_SECOND_RATIO = Second(1)/TIME_PRECISION
+TIME_PRECISION_SECOND_RATIO = Second(1) / TIME_PRECISION
 
-_Second(t::Real) = round(Int, t*TIME_PRECISION_SECOND_RATIO)*TIME_PRECISION
+_Second(t::Real) = round(Int, t * TIME_PRECISION_SECOND_RATIO) * TIME_PRECISION
 
 export @linearscale
 
@@ -402,10 +402,11 @@ end
 ```
 fap(x::AbstractVecOrMat{<:Real}, dt::Real) -> (f, Amplitude, Phase)
 ```
+
 calculate amplitude and phase vs frequency
 """
 function fap(x::AbstractVecOrMat{<:Real}, dt::Real)
-    f = range(0.0, 1.0, length=size(x, 1))./dt
+    f = range(0.0, 1.0; length = size(x, 1)) ./ dt
     X = fft(x)
     A = abs.(X)
     p = angle.(X)

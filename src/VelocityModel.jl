@@ -271,8 +271,8 @@ end
 
 function PsudoRegular3D(fp_or_nm::String)
     if isfile(fp_or_nm)
-        io = open(fp_or_nm, "r")
-        n = read(io, Int64)
+        io   = open(fp_or_nm, "r")
+        n    = read(io, Int64)
         x    = n > 0 ? _read_f64_vector(io) : Float64[]
         y    = n > 1 ? _read_f64_vector(io) : Float64[]
         d    = n > 2 ? _read_f64_array(io) : zeros(0, 0, 0)

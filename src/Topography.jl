@@ -145,7 +145,7 @@ end
 
 close(dem::DEM) = close.(dem.blockData)
 
-in(dem::DEM, x::Real, y::Real) = any(d->in(d, x, y), dem.blockData)
+in(dem::DEM, x::Real, y::Real) = any(d -> in(d, x, y), dem.blockData)
 
 function elevation(dem::DEM, x::Real, y::Real)
     iblock = findfirst(b -> in(b, x, y), dem.blockData)
