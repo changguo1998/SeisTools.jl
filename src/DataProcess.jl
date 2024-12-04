@@ -2,10 +2,52 @@ module DataProcess
 
 using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
-TIME_PRECISION = Microsecond(1)
-TIME_PRECISION_SECOND_RATIO = Second(1) / TIME_PRECISION
+import Dates: Second, Millisecond, Microsecond
 
-_Second(t::Real) = round(Int, t * TIME_PRECISION_SECOND_RATIO) * TIME_PRECISION
+TIME_PRECISION = Dates.Microsecond(1)
+
+MIN_TP = Dates.Minute(1) / TIME_PRECISION
+SEC_TP = Dates.Second(1) / TIME_PRECISION
+MSEC_TP = Dates.Millisecond(1) / TIME_PRECISION
+USEC_TP = Dates.Microsecond(1) / TIME_PRECISION
+
+export Minute, Second, Millisecond, Microsecond
+
+"""
+```julia
+Minute(t::AbstractFloat)
+```
+
+convert float in minute to precision. see `TIME_PRECISION` for current precision
+"""
+Minute(t::AbstractFloat) = round(Int, t * MIN_TP) * TIME_PRECISION
+
+"""
+```julia
+Second(t::AbstractFloat)
+```
+
+convert float in second to precision. see `TIME_PRECISION` for current precision
+"""
+Second(t::AbstractFloat) = round(Int, t * SEC_TP) * TIME_PRECISION
+
+"""
+```julia
+Millisecond(t::AbstractFloat)
+```
+
+convert float in millisecond to precision. see `TIME_PRECISION` for current precision
+"""
+Millisecond(t::AbstractFloat) = round(Int, t * MSEC_TP) * TIME_PRECISION
+
+"""
+```julia
+Microsecond(t::AbstractFloat)
+```
+
+convert float in microsecond to precision. see `TIME_PRECISION` for current precision
+"""
+Microsecond(t::AbstractFloat) = round(Int, t * USEC_TP) * TIME_PRECISION
 
 export @linearscale
 
@@ -384,7 +426,7 @@ end
 
 """
 ```
-xcorr_t(x, y, shiftstart::Integer=1-size(y, 1), shiftend::Integer=size(x, 1)-1) -> (lag, corr)
+xcorr_t(x, y, shiftstart::Integer=1-size(y, 1), shiftend::Integer=size(x, 1)-1) -> (lag=lag, c=corr)
 ```
 
 calculate time domain cross correlation of `x` and `y` (shift `y` relative to `x`).
@@ -444,7 +486,7 @@ end
 
 """
 ```
-resample(x::AbstractVecOrMat{<:Real}, N::Integer) -> VecOrMat
+resample(x::AbstractVecOrMat{<:Real}, Ny::Integer) -> VecOrMat
 ```
 """
 function resample(x::AbstractVecOrMat{<:Real}, N::Integer)
@@ -530,21 +572,21 @@ function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len
     return (xbegin + (xstart - 1) * dt, y, dt)
 end
 
-"""
-```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real; fillval=0.0)
--> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
-```
+# """
+# ```
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real; fillval=0.0)
+# -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+# ```
 
-cut rows from x, start from time `start` with time length `len`. `len` and `dt` is supposed to use unit `s`
-"""
-function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real;
-             fillval = 0.0)
-    npts = round(Int, _Second(len) / _Second(dt))
-    xstart = round(Int, (start - xbegin) / _Second(dt)) + 1
-    y = cut(x, xstart, npts; fillval = fillval)
-    return (xbegin + (xstart - 1) * _Second(dt), y, _Second(dt))
-end
+# cut rows from x, start from time `start` with time length `len`. `len` and `dt` is supposed to use unit `s`
+# """
+# function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real;
+#              fillval = 0.0)
+#     npts = round(Int, len / dt)
+#     xstart = round(Int, (start - xbegin) / _Second(dt)) + 1
+#     y = cut(x, xstart, npts; fillval = fillval)
+#     return (xbegin + (xstart - 1) * _Second(dt), y, _Second(dt))
+# end
 
 """
 ```
@@ -557,16 +599,16 @@ cut rows from x, start from time `start` to time `stop`
 cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::TimePeriod;
 fillval = 0.0) = cut(x, xbegin, start, stop - start, dt; fillval = fillval)
 
-"""
-```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real; fillval=0.0)
--> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
-```
+# """
+# ```
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real; fillval=0.0)
+# -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+# ```
 
-cut rows from x, start from time `start` to time `stop`
-"""
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real;
-fillval = 0.0) = cut(x, xbegin, start, stop - start, _Second(dt); fillval = fillval)
+# cut rows from x, start from time `start` to time `stop`
+# """
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real;
+# fillval = 0.0) = cut(x, xbegin, start, stop - start, _Second(dt); fillval = fillval)
 
 export merge
 
@@ -576,8 +618,7 @@ merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Time
 -> (ybegin::DateTime, y::VecOrMat, dt::TimePeriod)
 ```
 
-merge each element in x into one VecOrMat y, the latter element in x will overwrite data from the former element when
-there are overlapes
+merge each element in x into one VecOrMat y, the latter element in x will overwrite former element when overlapes exist
 """
 function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::TimePeriod; fillval = 0.0)
     xstops = map(i -> xbegins[i] + dt * size(x[i], 1), eachindex(x))
