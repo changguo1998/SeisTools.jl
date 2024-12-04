@@ -2,13 +2,62 @@ module DataProcess
 
 using Statistics, FFTW, Dates, LinearAlgebra, DSP
 
-export @linearscale, detrend!, detrend, taper!, taper, bandpass, lowpass, highpass, ZPK, trans, cut!, cut, merge
+import Dates: Second, Millisecond, Microsecond
 
-include("macros.jl")
+TIME_PRECISION = Dates.Microsecond(1)
+
+MIN_TP = Dates.Minute(1) / TIME_PRECISION
+SEC_TP = Dates.Second(1) / TIME_PRECISION
+MSEC_TP = Dates.Millisecond(1) / TIME_PRECISION
+USEC_TP = Dates.Microsecond(1) / TIME_PRECISION
+
+export Minute, Second, Millisecond, Microsecond
+
+"""
+```julia
+Minute(t::AbstractFloat)
+```
+
+convert float in minute to precision. see `TIME_PRECISION` for current precision
+"""
+Minute(t::AbstractFloat) = round(Int, t * MIN_TP) * TIME_PRECISION
+
+"""
+```julia
+Second(t::AbstractFloat)
+```
+
+convert float in second to precision. see `TIME_PRECISION` for current precision
+"""
+Second(t::AbstractFloat) = round(Int, t * SEC_TP) * TIME_PRECISION
+
+"""
+```julia
+Millisecond(t::AbstractFloat)
+```
+
+convert float in millisecond to precision. see `TIME_PRECISION` for current precision
+"""
+Millisecond(t::AbstractFloat) = round(Int, t * MSEC_TP) * TIME_PRECISION
+
+"""
+```julia
+Microsecond(t::AbstractFloat)
+```
+
+convert float in microsecond to precision. see `TIME_PRECISION` for current precision
+"""
+Microsecond(t::AbstractFloat) = round(Int, t * USEC_TP) * TIME_PRECISION
+
+export @linearscale
+
+include("basic.jl")
+
+export detrend, detrend!
 
 """
 ```
-detrend!(x::AbstractVector; type=:LeastSquare)
+detrend!(x::AbstractVecOrMat; type=:LeastSquare)
 ```
 
 Remove the linear content of x. See `detrend` for more information
@@ -48,42 +97,57 @@ end
 
 """
 ```
-detrend(x::AbstractVector; type=:LeastSquare)
+detrend(x::AbstractVecOrMat; type=:LeastSquare)
 ```
 
-Remove the linear content of x. The liear type can be
+Remove the linear content of x. The linear type can be
 
   - `:LeastSquare`(default) using Least Square method to get the linear content
   - `:Mean` using mean of x
   - `:SimpleLinear` using the first and last sample to get linear content
 """
-function detrend(x::AbstractVector; type::Symbol = :LeastSquare)
+function detrend(x::AbstractVecOrMat; type::Symbol = :LeastSquare)
     y = deepcopy(x)
     detrend!(y; type = type)
     return y
 end
 
+export taper, taper!
+
 """
 ```
-taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+taper!(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
 ```
 
 see `taper`
 """
-function taper!(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper!(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     @must ((ratio >= 0.0) && (ratio <= 0.5)) "ratio should between 0 and 0.5"
     @must ((f(0.0) == 0.0) && (f(1.0) == 1.0)) "weight function w(x) should satisfy: w(0)==0, w(1)==1"
     @must (side in (:Head, :Tail, :Both)) "specify which side to be tapered"
-    N = length(x)
-    M = round(Int, N * ratio)
-    if side == :Head || side == :Both
-        for i = 1:M
-            x[i] *= f((i - 1) / (M - 1))
+    N = size(x, 1)
+    M = max(1, round(Int, N * ratio))
+    if M == 1
+        for xc in eachcol(x)
+            if (side == :Head) || (side == :Both)
+                xc[1] *= 0.0
+            end
+            if (side == :Tail) || (side == :Both)
+                xc[end] *= 0.0
+            end
         end
+        return nothing
     end
-    if side == :Tail || side == :Both
-        for i = 1:M
-            x[N-i+1] *= f((i - 1) / (M - 1))
+    for xc in eachcol(x)
+        if (side == :Head) || (side == :Both)
+            for i = 1:M
+                xc[i] *= f((i - 1) / (M - 1))
+            end
+        end
+        if (side == :Tail) || (side == :Both)
+            for i = 1:M
+                xc[N-i+1] *= f((i - 1) / (M - 1))
+            end
         end
     end
     return nothing
@@ -91,17 +155,17 @@ end
 
 """
 ```
-taper!(x::AbstractVector; ratio::Real=0.05, side::Symbol=:Both)
+taper!(x::AbstractVecOrMat; ratio::Real=0.05, side::Symbol=:Both)
 ```
 """
-function taper!(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper!(x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     taper!(identity, x; ratio = ratio, side = side)
     return nothing
 end
 
 """
 ```
-taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+taper(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
 ```
 
 Add taper to waveform.
@@ -110,63 +174,87 @@ Add taper to waveform.
   - `ratio` is window length, between 0 - 0.5
   - `side` should be one of `:Both`, `:Head` or `Tail`
 """
-function taper(f::Function, x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper(f::Function, x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
     taper!(f, y; ratio = ratio, side = side)
     return y
 end
 
-function taper(x::AbstractVector; ratio::Real = 0.05, side::Symbol = :Both)
+function taper(x::AbstractVecOrMat; ratio::Real = 0.05, side::Symbol = :Both)
     y = deepcopy(x)
     taper!(identity, y; ratio = ratio, side = side)
     return y
 end
 
+export bandpass, highpass, lowpass
+
 """
 ```
-bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function bandpass(x::AbstractVector, w1::AbstractFloat, w2::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Bandpass(w1, w2; fs = fs), Butterworth(n))
+function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Bandpass(w1, w2; fs = fsample), Butterworth(n))
+    return filtfilt(ftr, x)
+end
+
+# function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fs::Real = 1.0)
+#     y = deepcopy(x)
+#     L = size(x, 1)
+#     df = fs / L
+#     for ix in axes(x, 2)
+#         X = fft(x[:, ix])
+#         Y = zeros(eltype(X), length(X))
+#         for i = 1:round(Int, L / 2)
+#             f = (i - 1) * df
+#             if (f >= w1) && (f <= w2)
+#                 Y[i] = X[i]
+#                 Y[L-i+1] = conj(X[i])
+#             end
+#         end
+#         ifft!(Y)
+#         y[:, ix] .= real.(Y)
+#     end
+#     return y
+# end
+
+"""
+```
+lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
+```
+"""
+function lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Lowpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
 """
 ```
-lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
+highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 ```
 """
-function lowpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Lowpass(w; fs = fs), Butterworth(n))
+function highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
+    @must fsample > 0.0
+    ftr = digitalfilter(Highpass(w; fs = fsample), Butterworth(n))
     return filtfilt(ftr, x)
 end
 
-"""
-```
-highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-```
-"""
-function highpass(x::AbstractVector, w::AbstractFloat, fs::Real = 0.0; n::Int = 4)
-    @must fs > 0.0
-    ftr = digitalfilter(Highpass(w; fs = fs), Butterworth(n))
-    return filtfilt(ftr, x)
-end
-
+export ZPK, trans, DISPLACEMENT, VELOCITY, ACCELERATION
 struct ZPK
     z::Vector{ComplexF64}
     p::Vector{ComplexF64}
     k::Float64
-    function ZPK(z::Vector{ComplexF64}, p::Vector{ComplexF64}, k::Float64 = 1.0)
-        return new(z, p, k)
-    end
 end
 
 function ZPK(z::Vector = ComplexF64[], p::Vector = ComplexF64[], k::Real = 1.0)
     return ZPK(ComplexF64.(z), ComplexF64.(p), Float64(k))
 end
+
+const DISPLACEMENT = ZPK()
+const VELOCITY = ZPK([0.0])
+const ACCELERATION = ZPK([0.0, 0.0])
 
 """
 ```
@@ -338,7 +426,7 @@ end
 
 """
 ```
-xcorr_t(x, y, shiftstart::Integer=1-size(y, 1), shiftend::Integer=size(x, 1)-1) -> (lag, corr)
+xcorr_t(x, y, shiftstart::Integer=1-size(y, 1), shiftend::Integer=size(x, 1)-1) -> (lag=lag, c=corr)
 ```
 
 calculate time domain cross correlation of `x` and `y` (shift `y` relative to `x`).
@@ -351,6 +439,79 @@ function xcorr_t(x::AbstractVecOrMat{<:Real}, y::AbstractVecOrMat{<:Real}, shift
     xcorr_t!(z, x, y, shiftstart)
     return (lag = range(shiftstart; step = 1, length = shiftend - shiftstart + 1), c = z)
 end
+
+"""
+```
+fap(x::AbstractVecOrMat{<:Real}, dt::Real) -> (f, Amplitude, Phase)
+```
+
+calculate amplitude and phase vs frequency
+"""
+function fap(x::AbstractVecOrMat{<:Real}, dt::Real)
+    f = range(0.0, 1.0; length = size(x, 1)) ./ dt
+    X = fft(x)
+    A = abs.(X)
+    p = angle.(X)
+    return (f, A, p)
+end
+
+export fap, resample, resample!
+
+"""
+```
+resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
+```
+"""
+function resample!(y::AbstractVecOrMat{<:Real}, x::AbstractVecOrMat{<:Real})
+    @must size(y, 2) == size(x, 2) "column of x and y must be equal"
+    X = zeros(Complex{eltype(x)}, size(x))
+    Y = zeros(Complex{eltype(x)}, size(y))
+    Lx = size(X, 1)
+    Ly = size(Y, 1)
+    X .= x
+    for col in eachcol(X)
+        fft!(col)
+    end
+    Y[1, :] .= X[1, :]
+    for col in axes(y, 2), row = 2:floor(Int, min(Lx, Ly) / 2)
+        Y[row, col] = X[row, col]
+        Y[Ly-row+2, col] = conj(X[row, col])
+    end
+    for col in eachcol(Y)
+        ifft!(col)
+    end
+    y .= real.(Y) .* (Ly / Lx)
+    return nothing
+end
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, Ny::Integer) -> VecOrMat
+```
+"""
+function resample(x::AbstractVecOrMat{<:Real}, N::Integer)
+    s = collect(size(x))
+    s[1] = N
+    y = zeros(eltype(x), Tuple(s))
+    resample!(y, x)
+    return y
+end
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, ratio::Real) -> VecOrMat
+```
+"""
+resample(x::AbstractVecOrMat{<:Real}, ratio::Real) = resample(x, round(Int, size(x, 1) * ratio))
+
+"""
+```
+resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) -> VecOrMat
+```
+"""
+resample(x::AbstractVecOrMat{<:Real}, xdt::Real, ydt::Real) = resample(x, round(Int, size(x, 1) * xdt / ydt))
+
+export cut, cut!
 
 """
 ```
@@ -397,45 +558,73 @@ end
 
 """
 ```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond; fillval=0.0)
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::TimePeriod; fillval=0.0)
 -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
 ```
 
 cut rows from x, start from time `start` with time length `len`
 """
-function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::Millisecond;
+function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Period, dt::TimePeriod;
              fillval = 0.0)
-    npts = round(Int, Millisecond(len) / dt)
-    xstart = round(Int, Millisecond(start - xbegin) / dt) + 1
+    npts = round(Int, len / dt)
+    xstart = round(Int, (start - xbegin) / dt) + 1
     y = cut(x, xstart, npts; fillval = fillval)
     return (xbegin + (xstart - 1) * dt, y, dt)
 end
 
+# """
+# ```
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real; fillval=0.0)
+# -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+# ```
+
+# cut rows from x, start from time `start` with time length `len`. `len` and `dt` is supposed to use unit `s`
+# """
+# function cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, len::Real, dt::Real;
+#              fillval = 0.0)
+#     npts = round(Int, len / dt)
+#     xstart = round(Int, (start - xbegin) / _Second(dt)) + 1
+#     y = cut(x, xstart, npts; fillval = fillval)
+#     return (xbegin + (xstart - 1) * _Second(dt), y, _Second(dt))
+# end
+
 """
 ```
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond; fillval=0.0)
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::TimePeriod; fillval=0.0)
 -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
 ```
 
 cut rows from x, start from time `start` to time `stop`
 """
-cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Millisecond;
+cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::TimePeriod;
 fillval = 0.0) = cut(x, xbegin, start, stop - start, dt; fillval = fillval)
 
+# """
+# ```
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real; fillval=0.0)
+# -> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+# ```
+
+# cut rows from x, start from time `start` to time `stop`
+# """
+# cut(x::AbstractVecOrMat{<:Real}, xbegin::DateTime, start::DateTime, stop::DateTime, dt::Real;
+# fillval = 0.0) = cut(x, xbegin, start, stop - start, _Second(dt); fillval = fillval)
+
+export merge
+
 """
 ```
-merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval=0.0)
--> (ybegin::DateTime, y::VecOrMat, dt::Millisecond)
+merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::TimePeriod; fillval=0.0)
+-> (ybegin::DateTime, y::VecOrMat, dt::TimePeriod)
 ```
 
-merge each element in x into one VecOrMat y, the latter element in x will overwrite data from the former element when
-there are overlapes
+merge each element in x into one VecOrMat y, the latter element in x will overwrite former element when overlapes exist
 """
-function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::Millisecond; fillval = 0.0)
+function merge(x::Vector{<:AbstractVecOrMat{<:Real}}, xbegins::Vector{DateTime}, dt::TimePeriod; fillval = 0.0)
     xstops = map(i -> xbegins[i] + dt * size(x[i], 1), eachindex(x))
     ybegin = minimum(xbegins)
     ystop = maximum(xstops)
-    len = round(Int, Millisecond(ystop - ybegin) / dt)
+    len = round(Int, (ystop - ybegin) / dt)
     if typeof(x[1]) <: AbstractVector
         y = fill(fillval, len)
     else

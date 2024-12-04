@@ -2,7 +2,7 @@ module CommonFunction
 
 using SpecialFunctions, SpecialPolynomials
 
-include("macros.jl")
+include("basic.jl")
 
 export ricker
 

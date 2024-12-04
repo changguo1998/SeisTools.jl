@@ -2,7 +2,7 @@ module SAC
 
 using Dates, Printf, Statistics
 
-include("macros.jl")
+include("basic.jl")
 
 SAC_HEADER_LIST = ("delta", "depmin", "depmax", "scale", "odelta", "b", "e", "o", "a", "internal1", "t0", "t1", "t2",
                    "t3", "t4", "t5", "t6", "t7", "t8", "t9", "f", "resp0", "resp1", "resp2", "resp3", "resp4", "resp5",
@@ -291,7 +291,7 @@ function emptyheader(; hdrvars...)
 end
 
 """
-standardname(frame::WaveFrame; standard::AbstractString = "iris",
+standardname(frame::Dict; standard::AbstractString = "iris",
 quality::AbstractString = "D", kwargs...)
 """
 function standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
