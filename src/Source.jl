@@ -213,10 +213,10 @@ function kagan(mt1::MomentTensor, mt2::MomentTensor)
         error("vector position is not correct")
     end
 
-    return min(_get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 1], E2.vectors[:, 3]),
-               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], E2.vectors[:, 3]),
-               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 1], -E2.vectors[:, 3]),
-               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], -E2.vectors[:, 3]))
+    return min(_get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3],  E2.vectors[:, 1],  E2.vectors[:, 3]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], -E2.vectors[:, 3]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3],  E2.vectors[:, 3],  E2.vectors[:, 1]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 3], -E2.vectors[:, 1]))
 end
 
 #=
@@ -410,10 +410,10 @@ function kagan(sdrA::SDR, sdrB::SDR)
     (nA1, nA2) = _sdr2normvec(sdrA.strike1, sdrA.dip1, sdrA.rake1)
     (nB1, nB2) = _sdr2normvec(sdrB.strike1, sdrB.dip1, sdrB.rake1)
 
-    return min(_get_eigen_angle(nA1, nA2, nB1, nB2),
-               _get_eigen_angle(nA1, nA2, -nB1, nB2),
-               _get_eigen_angle(nA1, nA2, nB1, -nB2),
-               _get_eigen_angle(nA1, nA2, -nB1, -nB2))
+    return min(_get_eigen_angle(nA1, nA2,  nB1,  nB2),
+               _get_eigen_angle(nA1, nA2, -nB1, -nB2),
+               _get_eigen_angle(nA1, nA2,  nB2,  nB1),
+               _get_eigen_angle(nA1, nA2, -nB2, -nB1))
 end
 
 function isapprox(sdrA::SDR, sdrB::SDR)
