@@ -195,7 +195,7 @@ bandpass(x::AbstractVector, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
 """
 function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
-    ftr = digitalfilter(Bandpass(w1, w2; fs = fsample), Butterworth(n))
+    ftr = digitalfilter(Bandpass(w1, w2), Butterworth(n); fs = fsample)
     return filtfilt(ftr, x)
 end
 
@@ -226,7 +226,7 @@ lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 """
 function lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
-    ftr = digitalfilter(Lowpass(w; fs = fsample), Butterworth(n))
+    ftr = digitalfilter(Lowpass(w), Butterworth(n); fs = fsample)
     return filtfilt(ftr, x)
 end
 
@@ -237,7 +237,7 @@ highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 """
 function highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
     @must fsample > 0.0
-    ftr = digitalfilter(Highpass(w; fs = fsample), Butterworth(n))
+    ftr = digitalfilter(Highpass(w), Butterworth(n); fs = fsample)
     return filtfilt(ftr, x)
 end
 

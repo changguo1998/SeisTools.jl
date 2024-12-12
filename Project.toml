@@ -1,7 +1,7 @@
 name = "SeisTools"
 uuid = "1a3a5297-0f7d-450c-8955-231a439346a8"
 authors = ["Chang Guo <changguo1998@gmail.com>"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
