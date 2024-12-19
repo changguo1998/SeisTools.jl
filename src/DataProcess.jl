@@ -1,15 +1,17 @@
 module DataProcess
 
-using Statistics, FFTW, Dates, LinearAlgebra, DSP
+using Statistics, Dates, LinearAlgebra, FFTW, DSP
 
-import Dates: Second, Millisecond, Microsecond
+import Dates: Minute, Second, Millisecond, Microsecond
 
-TIME_PRECISION = Dates.Microsecond(1)
+include("basic.jl")
 
-MIN_TP = Dates.Minute(1) / TIME_PRECISION
-SEC_TP = Dates.Second(1) / TIME_PRECISION
-MSEC_TP = Dates.Millisecond(1) / TIME_PRECISION
-USEC_TP = Dates.Microsecond(1) / TIME_PRECISION
+TIME_PRECISION = Dates.Microsecond
+
+MIN_TP = Dates.Minute(1) / TIME_PRECISION(1)
+SEC_TP = Dates.Second(1) / TIME_PRECISION(1)
+MSEC_TP = Dates.Millisecond(1) / TIME_PRECISION(1)
+USEC_TP = Dates.Microsecond(1) / TIME_PRECISION(1)
 
 export Minute, Second, Millisecond, Microsecond
 
@@ -20,7 +22,7 @@ Minute(t::AbstractFloat)
 
 convert float in minute to precision. see `TIME_PRECISION` for current precision
 """
-Minute(t::AbstractFloat) = round(Int, t * MIN_TP) * TIME_PRECISION
+Minute(t::AbstractFloat) = round(Int, t * MIN_TP) |> TIME_PRECISION
 
 """
 ```julia
@@ -29,7 +31,7 @@ Second(t::AbstractFloat)
 
 convert float in second to precision. see `TIME_PRECISION` for current precision
 """
-Second(t::AbstractFloat) = round(Int, t * SEC_TP) * TIME_PRECISION
+Second(t::AbstractFloat) = round(Int, t * SEC_TP) |> TIME_PRECISION
 
 """
 ```julia
@@ -38,7 +40,7 @@ Millisecond(t::AbstractFloat)
 
 convert float in millisecond to precision. see `TIME_PRECISION` for current precision
 """
-Millisecond(t::AbstractFloat) = round(Int, t * MSEC_TP) * TIME_PRECISION
+Millisecond(t::AbstractFloat) = round(Int, t * MSEC_TP) |> TIME_PRECISION
 
 """
 ```julia
@@ -47,11 +49,7 @@ Microsecond(t::AbstractFloat)
 
 convert float in microsecond to precision. see `TIME_PRECISION` for current precision
 """
-Microsecond(t::AbstractFloat) = round(Int, t * USEC_TP) * TIME_PRECISION
-
-export @linearscale
-
-include("basic.jl")
+Microsecond(t::AbstractFloat) = round(Int, t * USEC_TP) |> TIME_PRECISION
 
 export detrend, detrend!
 
@@ -199,26 +197,6 @@ function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fsample::Real = 0.0; 
     return filtfilt(ftr, x)
 end
 
-# function bandpass(x::AbstractVecOrMat, w1::Real, w2::Real, fs::Real = 1.0)
-#     y = deepcopy(x)
-#     L = size(x, 1)
-#     df = fs / L
-#     for ix in axes(x, 2)
-#         X = fft(x[:, ix])
-#         Y = zeros(eltype(X), length(X))
-#         for i = 1:round(Int, L / 2)
-#             f = (i - 1) * df
-#             if (f >= w1) && (f <= w2)
-#                 Y[i] = X[i]
-#                 Y[L-i+1] = conj(X[i])
-#             end
-#         end
-#         ifft!(Y)
-#         y[:, ix] .= real.(Y)
-#     end
-#     return y
-# end
-
 """
 ```
 lowpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
@@ -242,6 +220,7 @@ function highpass(x::AbstractVector, w::Real, fsample::Real = 0.0; n::Int = 4)
 end
 
 export ZPK, trans, DISPLACEMENT, VELOCITY, ACCELERATION
+
 struct ZPK
     z::Vector{ComplexF64}
     p::Vector{ComplexF64}

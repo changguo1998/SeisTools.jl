@@ -2,4 +2,5 @@
 
 ## Introduction
 
-Functions for seismic data processing
+This module provides functions for seismic data processing trying to avoid introducing
+user defined data types.
