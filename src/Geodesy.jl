@@ -4,21 +4,6 @@ using LinearAlgebra, Statistics
 
 include("basic.jl")
 
-abstract type Point <: Any end
-
-struct LatLon <: Point
-    lat::Float64
-    lon::Float64
-    el::Float64
-end
-
-struct UTM <: Point
-    x::Float64
-    y::Float64
-    r::String
-    el::Float64
-end
-
 abstract type ReferenceModel <: Any end
 
 struct ReferenceSphere <: ReferenceModel
@@ -36,11 +21,6 @@ function distance(lat1::Real, lon1::Real, lat2::Real, lon2::Real, ref::Reference
     cosδ = cosd(lat1 - lat2) - dc
     return ref.r * acos(cosδ)
 end
-
-"""
-distance(p1, p2, ref=EarthSphere) -> distance in meter
-"""
-distance(p1::LatLon, p2::LatLon, ref::ReferenceSphere = EarthSphere) = distance(p1.lat, p1.lon, p2.lat, p2.lon, ref)
 
 """
 azimuth(lat1, lon1, lat2, lon2, ref=EarthSphere) -> azimuth in degree
@@ -180,13 +160,8 @@ function utm2ll(x::Real, y::Real, f::Integer, ref::ReferenceEllipsoid = WGS84)
     return (lat, lon)
 end
 
-function LatLon(c::UTM, ref::ReferenceEllipsoid = WGS84)
-    (lat, lon) = utm2ll(c.x, c.y, c.r, ref)
-    return LatLon(lat, lon, c.el)
-end
-
 """
-ll2utm(lat,lon; ref=WGS84) -> (x, y, f)
+ll2utm(lat, lon; ref=WGS84) -> (x, y, f)
 
   - x, y in meters
 """
@@ -217,10 +192,35 @@ function ll2utm(lat::Real, lon::Real, ref::ReferenceEllipsoid = WGS84)
     y = real(Z) + YS
     return (x, y, F0)
 end
+#=
+abstract type Point <: Any end
+
+struct LatLon <: Point
+    lat::Float64
+    lon::Float64
+    el::Float64
+end
+
+function LatLon(c::UTM, ref::ReferenceEllipsoid = WGS84)
+    (lat, lon) = utm2ll(c.x, c.y, c.r, ref)
+    return LatLon(lat, lon, c.el)
+end
+
+"""
+distance(p1, p2, ref=EarthSphere) -> distance in meter
+"""
+distance(p1::LatLon, p2::LatLon, ref::ReferenceSphere = EarthSphere) = distance(p1.lat, p1.lon, p2.lat, p2.lon, ref)
+
+struct UTM <: Point
+    x::Float64
+    y::Float64
+    r::String
+    el::Float64
+end
 
 function UTM(c::LatLon, ref::ReferenceEllipsoid = WGS84)
     (x, y, r) = ll2utm(c.lat, c.lon, ref)
     return UTM(x, y, r, c.el)
 end
-
+=#
 end
