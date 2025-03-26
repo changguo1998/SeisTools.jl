@@ -316,6 +316,36 @@ function beachball_bitmap(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer
     return vmap
 end
 
+"""
+```
+function beachball_bitmap_Schmit(m::MomentTensor; resolution=(201,201)) -> Matrix
+```
+
+get a map of values to plot `MomentTensor`. the first dimension of `Matrix` is north, and the second is east
+"""
+function beachball_bitmap_Schmit(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer} = (201, 201))
+    M = [m.values[1] m.values[4] m.values[5];
+         m.values[4] m.values[2] m.values[6];
+         m.values[5] m.values[6] m.values[3]]
+    vmap = zeros(resolution)
+    c = zeros(3)
+    for j in axes(vmap, 2), i in axes(vmap, 1)
+        x = 2.0 * (i - 1) / (resolution[1] - 1) - 1.0
+        y = 2.0 * (j - 1) / (resolution[2] - 1) - 1.0
+        nr = x^2 + y^2
+        if nr > 1.0
+            vmap[i, j] = NaN
+            continue
+        end
+        r = sqrt(nr*(2-nr))
+        c[3] = 1.0 - nr
+        c[1] = r * x / sqrt(nr)
+        c[2] = r * y / sqrt(nr)
+        vmap[i, j] = c' * M * c
+    end
+    return vmap
+end
+
 export SDR
 
 """
@@ -433,7 +463,15 @@ function beachball_bitmap(m::SDR; resolution=(201,201)) -> Matrix
 
 get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
 """
-beachball_bitmap(sdr::SDR, resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap(MomentTensor(sdr);
-                                                                                                   resolution = resolution)
+beachball_bitmap(sdr::SDR; resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap(MomentTensor(sdr); resolution = resolution)
 
+"""
+```
+function beachball_bitmap_Schmit(m::SDR; resolution=(201,201)) -> Matrix
+```
+
+get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
+"""
+beachball_bitmap_Schmit(sdr::SDR; resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap_Schmit(MomentTensor(sdr);
+                                                                                                    resolution = resolution)
 end
