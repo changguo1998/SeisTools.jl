@@ -171,9 +171,9 @@ function autocal!(hdr, data)
 end
 
 """
-write(io::IO, hdr::Dict, data; autocal::Bool=true)
+write!(io::IO, hdr::Dict, data; autocal::Bool=true)
 
-write WaveFrame to file with SAC format. If `autocal` is true, the header variable:
+write data to file with SAC format. If `autocal` is true, the header variable:
 `depmax`, `depmen`, `depmin` will be update before writting.
 """
 function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
@@ -243,6 +243,9 @@ function write!(io::IO, hdr::Dict, data; autocalc::Bool = true)
     return nothing
 end
 
+"""
+write(io::IO, hdr::Dict, data; autocalc::Bool = true)
+"""
 function write(io::IO, hdr::Dict, data; autocalc::Bool = true)
     thdr = deepcopy(hdr)
     tdata = deepcopy(data)
@@ -251,7 +254,7 @@ function write(io::IO, hdr::Dict, data; autocalc::Bool = true)
 end
 
 """
-write(io::IO, frame::WaveFrame; autocal::Bool=true)
+write(path::AbstractString, hdr::Dict, data; autocalc::Bool = true)
 """
 function write(path::AbstractString, hdr::Dict, data; autocalc::Bool = true)
     open(path, "w") do io
@@ -291,8 +294,7 @@ function emptyheader(; hdrvars...)
 end
 
 """
-standardname(frame::Dict; standard::AbstractString = "iris",
-quality::AbstractString = "D", kwargs...)
+standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
 """
 function standardname(hdr::Dict; standard::AbstractString = "iris", quality::AbstractString = "D", kwargs...)
     if standard == "iris"
