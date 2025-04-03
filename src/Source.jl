@@ -5,7 +5,8 @@ import Base: show, isequal, +, -, Matrix, isapprox
 
 include("basic.jl")
 
-export MomentTensor, show, isequal, decompose, beachball_bitmap, beachball_sdrline, kagan, M0
+export MomentTensor, show, isequal, decompose, beachball_bitmap, beachball_sdrline, beachball_bitmap_Wulff,
+       beachball_sdrline_Wulff, beachball_bitmap_Schmit, beachball_sdrline_Schmit, kagan, M0
 
 """
     ```
@@ -213,9 +214,9 @@ function kagan(mt1::MomentTensor, mt2::MomentTensor)
         error("vector position is not correct")
     end
 
-    return min(_get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3],  E2.vectors[:, 1],  E2.vectors[:, 3]),
+    return min(_get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 1], E2.vectors[:, 3]),
                _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 1], -E2.vectors[:, 3]),
-               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3],  E2.vectors[:, 3],  E2.vectors[:, 1]),
+               _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], E2.vectors[:, 3], E2.vectors[:, 1]),
                _get_eigen_angle(E1.vectors[:, 1], E1.vectors[:, 3], -E2.vectors[:, 3], -E2.vectors[:, 1]))
 end
 
@@ -252,7 +253,7 @@ function _linetrace(n::Vector{Float64}, theta::AbstractVector{Float64})
     return [xv yv] * permutedims([cosd.(theta) sind.(theta)])
 end
 
-function _projectcoor(c::Matrix{<:Real})
+function _projectcoor_Wulff(c::Matrix{<:Real})
     xy = Tuple{Float64,Float64}[]
     for i in axes(c, 2)
         push!(xy, (c[1, i] / (1.0 + c[3, i]), c[2, i] / (1.0 + c[3, i])))
@@ -260,14 +261,24 @@ function _projectcoor(c::Matrix{<:Real})
     return xy
 end
 
+function _projectcoor_Schmit(c::Matrix{<:Real})
+    xy = Tuple{Float64,Float64}[]
+    for i in axes(c, 2)
+        t = acos(c[3, i])
+        k = sqrt(2) * sin(t / 2) / sin(t)
+        push!(xy, (c[1, i] * k, c[2, i] * k))
+    end
+    return xy
+end
+
 """
 ```
-beachball_sdrline(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bool=true) -> (l1=xy1, l2=xy2, edge=xy3)
+beachball_sdrline_Wulff(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bool=true) -> (l1=xy1, l2=xy2, edge=xy3)
 ```
 
 xy? is `Vector{Tuple{Float64,Float64}}` like `[(1.0, 2.0), (2.0, 3.0)]`
 """
-function beachball_sdrline(m::MomentTensor, dtheta::Real = 1.0; innerdecompose::Bool = true)
+function beachball_sdrline_Wulff(m::MomentTensor, dtheta::Real = 1.0; innerdecompose::Bool = true)
     dm = innerdecompose ? decompose(m).dc : m
     M = [dm.values[1] dm.values[4] dm.values[5];
          dm.values[4] dm.values[2] dm.values[6];
@@ -280,20 +291,46 @@ function beachball_sdrline(m::MomentTensor, dtheta::Real = 1.0; innerdecompose::
     theta = range(; start = 0.0, stop = 180.0, step = dtheta)
     trace1 = _linetrace(n1, theta)
     trace2 = _linetrace(n2, theta)
-    l1 = _projectcoor(trace1)
-    l2 = _projectcoor(trace2)
+    l1 = _projectcoor_Wulff(trace1)
+    l2 = _projectcoor_Wulff(trace2)
     return (l1 = l1, l2 = l2,
             edge = map(v -> (cosd(v), sind(v)), range(; start = 0.0, stop = 360.0, step = dtheta)))
 end
 
 """
 ```
-function beachball_bitmap(m::MomentTensor; resolution=(201,201)) -> Matrix
+beachball_sdrline_Schmit(m::MomentTensor, dtheta::Real=1.0; innerdecompose::Bool=true) -> (l1=xy1, l2=xy2, edge=xy3)
+```
+
+xy? is `Vector{Tuple{Float64,Float64}}` like `[(1.0, 2.0), (2.0, 3.0)]`
+"""
+function beachball_sdrline_Schmit(m::MomentTensor, dtheta::Real = 1.0; innerdecompose::Bool = true)
+    dm = innerdecompose ? decompose(m).dc : m
+    M = [dm.values[1] dm.values[4] dm.values[5];
+         dm.values[4] dm.values[2] dm.values[6];
+         dm.values[5] dm.values[6] dm.values[3]]
+    (_, V) = eigen(M)
+    P = V[:, 1]
+    T = V[:, 3]
+    n1 = normalize(P + T)
+    n2 = normalize(P - T)
+    theta = range(; start = 0.0, stop = 180.0, step = dtheta)
+    trace1 = _linetrace(n1, theta)
+    trace2 = _linetrace(n2, theta)
+    l1 = _projectcoor_Schmit(trace1)
+    l2 = _projectcoor_Schmit(trace2)
+    return (l1 = l1, l2 = l2,
+            edge = map(v -> (cosd(v), sind(v)), range(; start = 0.0, stop = 360.0, step = dtheta)))
+end
+
+"""
+```
+function beachball_bitmap_Wulff(m::MomentTensor; resolution=(201,201)) -> Matrix
 ```
 
 get a map of values to plot `MomentTensor`. the first dimension of `Matrix` is north, and the second is east
 """
-function beachball_bitmap(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer} = (201, 201))
+function beachball_bitmap_Wulff(m::MomentTensor; resolution::Tuple{<:Integer,<:Integer} = (201, 201))
     M = [m.values[1] m.values[4] m.values[5];
          m.values[4] m.values[2] m.values[6];
          m.values[5] m.values[6] m.values[3]]
@@ -337,7 +374,7 @@ function beachball_bitmap_Schmit(m::MomentTensor; resolution::Tuple{<:Integer,<:
             vmap[i, j] = NaN
             continue
         end
-        r = sqrt(nr*(2-nr))
+        r = sqrt(nr * (2 - nr))
         c[3] = 1.0 - nr
         c[1] = r * x / sqrt(nr)
         c[2] = r * y / sqrt(nr)
@@ -440,30 +477,41 @@ function kagan(sdrA::SDR, sdrB::SDR)
     (nA1, nA2) = _sdr2normvec(sdrA.strike1, sdrA.dip1, sdrA.rake1)
     (nB1, nB2) = _sdr2normvec(sdrB.strike1, sdrB.dip1, sdrB.rake1)
 
-    return min(_get_eigen_angle(nA1, nA2,  nB1,  nB2),
+    return min(_get_eigen_angle(nA1, nA2, nB1, nB2),
                _get_eigen_angle(nA1, nA2, -nB1, -nB2),
-               _get_eigen_angle(nA1, nA2,  nB2,  nB1),
+               _get_eigen_angle(nA1, nA2, nB2, nB1),
                _get_eigen_angle(nA1, nA2, -nB2, -nB1))
 end
 
 function isapprox(sdrA::SDR, sdrB::SDR)
     return Base.isapprox(kagan(sdrA, sdrB), 0.0) && Base.isapprox(sdrA.m0, sdrB.m0)
 end
-"""
-```
-beachball_sdrline(m::SDR, dtheta::Real=1.0) -> (l1=xy1, l2=xy2, edge=xy3)
-```
-"""
-beachball_sdrline(sdr::SDR, dtheta::Real = 1.0) = beachball_sdrline(MomentTensor(sdr), dtheta; innerdecompose = false)
 
 """
 ```
-function beachball_bitmap(m::SDR; resolution=(201,201)) -> Matrix
+beachball_sdrline_Wulff(m::SDR, dtheta::Real=1.0) -> (l1=xy1, l2=xy2, edge=xy3)
+```
+"""
+beachball_sdrline_Wulff(sdr::SDR, dtheta::Real = 1.0) = beachball_sdrline_Wulff(MomentTensor(sdr), dtheta;
+                                                                                innerdecompose = false)
+
+"""
+```
+beachball_sdrline_Schmit(m::SDR, dtheta::Real=1.0) -> (l1=xy1, l2=xy2, edge=xy3)
+```
+"""
+beachball_sdrline_Schmit(sdr::SDR, dtheta::Real = 1.0) = beachball_sdrline_Schmit(MomentTensor(sdr), dtheta;
+                                                                                  innerdecompose = false)
+
+"""
+```
+function beachball_bitmap_Wulff(m::SDR; resolution=(201,201)) -> Matrix
 ```
 
 get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
 """
-beachball_bitmap(sdr::SDR; resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap(MomentTensor(sdr); resolution = resolution)
+beachball_bitmap_Wulff(sdr::SDR; resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap_Wulff(MomentTensor(sdr);
+                                                                                                               resolution = resolution)
 
 """
 ```
@@ -473,5 +521,8 @@ function beachball_bitmap_Schmit(m::SDR; resolution=(201,201)) -> Matrix
 get a map of values to plot `SDR`. the first dimension of `Matrix` is north, and the second is east
 """
 beachball_bitmap_Schmit(sdr::SDR; resolution::Tuple{<:Integer,<:Integer} = (201, 201)) = beachball_bitmap_Schmit(MomentTensor(sdr);
-                                                                                                    resolution = resolution)
+                                                                                                                 resolution = resolution)
+
+beachball_sdrline = beachball_sdrline_Wulff
+beachball_bitmap = beachball_bitmap_Wulff
 end
