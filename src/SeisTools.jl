@@ -9,5 +9,6 @@ include("SAC.jl")
 include("SACPZ.jl")
 include("SEGY.jl")
 include("Source.jl")
+include("PhaseReport.jl")
 
 end # module
