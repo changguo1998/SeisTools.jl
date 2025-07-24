@@ -18,5 +18,5 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [compat]
 Downloads = "1.6.0"
-Mmap = "1.11.0"
+Mmap = "^1.10.0"
 TOML = "1.0.3"
