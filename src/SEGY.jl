@@ -211,6 +211,7 @@ function readtrace(io::IO, fhdr::Dict)
         t = zeros(Float64, fhdr["ns"])
     else
         @error "data sample format not supported now."
+        return (hdr = hdr, data = Float64[])
     end
     read!(io, t)
     t = Float64.(ntoh.(t))
@@ -238,13 +239,13 @@ function writefilehead(io::IO; taperlabel::String = "", textualFileHead::String 
     Base.write(io, sbuf)
     for i = 1:27
         T = FILE_HEADER_VAR_TYPE_LIST[i]
-        Base.write(io, T(binaryFileHead[FILE_HEADER_VAR_LIST[i]]))
+        Base.write(io, hton(T(binaryFileHead[FILE_HEADER_VAR_LIST[i]])))
     end
     unas = zeros(Int8, 240)
     Base.write(io, unas)
     for i = 28:30
         T = FILE_HEADER_VAR_TYPE_LIST[i]
-        Base.write(io, T(binaryFileHead[FILE_HEADER_VAR_LIST[i]]))
+        Base.write(io, hton(T(binaryFileHead[FILE_HEADER_VAR_LIST[i]])))
     end
     unas = zeros(Int8, 47)
     Base.write(io, unas)
@@ -259,13 +260,13 @@ end
 function writetrace(io::IO, theader::Dict, data::Vector{<:Real})
     for i = 1:91
         T = TRACE_HEADER_VAR_TYPE_LIST[i]
-        Base.write(io, T(theader[TRACE_HEADER_VAR_LIST[i]]))
+        Base.write(io, hton(T(theader[TRACE_HEADER_VAR_LIST[i]])))
     end
-    Base.write(io, data)
+    Base.write(io, hton.(data))
     return nothing
 end
 
-function write(io::IO, binaryFileHead::Dict, theader::Vector{Dict}, data::Vector{Vector{<:Real}},
+function write_segy(io::IO, binaryFileHead::Dict{String, Any}, theader::Vector{Dict{String, Real}}, data::Vector{Vector{<:Real}},
                textualFileHead::String = "", extendedTextualFileHead::Vector{String} = String[])
     writefilehead(io; textualFileHead = textualFileHead, binaryFileHead = binaryFileHead,
                   extendedTextualFileHead = extendedTextualFileHead)
@@ -274,7 +275,7 @@ function write(io::IO, binaryFileHead::Dict, theader::Vector{Dict}, data::Vector
     end
 end
 
-function write(io::IO, binaryFileHead::Dict, theader::Vector{Dict}, data::Matrix{<:Real},
+function write_segy(io::IO, binaryFileHead::Dict{String, Any}, theader::Vector{Dict{String, Real}}, data::Matrix{<:Real},
                textualFileHead::String = "", extendedTextualFileHead::Vector{String} = String[])
     writefilehead(io; textualFileHead = textualFileHead, binaryFileHead = binaryFileHead,
                   extendedTextualFileHead = extendedTextualFileHead)

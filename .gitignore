@@ -4,7 +4,6 @@
 *.bak.jl
 deps/deps.jl
 .vscode/
-.gitignore
 .gcbackup.toml
 .JuliaFormatter.toml
 docs/build/
@@ -15,3 +14,4 @@ Manifest.toml
 *.csv
 buffer/
 *.zip
+test/
